@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Apotek Signa Medika{% endblock %}</title>
+  <meta name="description" content="Sistem Pendukung Keputusan Pengadaan Obat — Apotek Signa Medika, Kec. Legonkulon, Kab. Subang">
+  <!-- Preconnect -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400..800;1,400..800&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="{{ url_for('static', filename='css/style.css') }}?v=3.0" rel="stylesheet">
+  {% block head %}{% endblock %}
+</head>
+<body>
+
+<!-- Mobile overlay backdrop -->
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<!-- ===== SIDEBAR ===== -->
+<nav id="sidebar" class="sidebar" aria-label="Menu navigasi utama">
+  <div class="sidebar-header d-flex align-items-center justify-content-between gap-2">
+    <div class="d-flex align-items-center gap-3">
+      <!-- Logo Apotek Signa Medika -->
+      <img src="{{ url_for('static', filename='img/logo-signa.png') }}"
+           alt="Logo Apotek Signa Medika"
+           class="sidebar-logo-img"
+           onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+      <div class="sidebar-logo-fallback" style="display:none">
+        <i class="bi bi-capsule-pill"></i>
+      </div>
+      <div>
+        <div class="sidebar-brand-name">Apotek Signa Medika</div>
+        <div class="sidebar-brand-loc"><i class="bi bi-geo-alt-fill me-1"></i>Legonkulon, Subang</div>
+      </div>
+    </div>
+    <!-- Mobile close button -->
+    <button class="btn-sidebar-close d-lg-none" id="sidebarCloseBtn" aria-label="Tutup Menu" title="Tutup Menu">
+      <i class="bi bi-x-lg"></i>
+    </button>
+  </div>
+
+  <div class="sidebar-user d-flex align-items-center gap-2">
+    <div class="user-avatar" aria-hidden="true"><i class="bi bi-person-fill"></i></div>
+    <div>
+      <div class="user-name">{{ current_user.username }}</div>
+      <div class="user-role">{{ current_user.role | capitalize }}</div>
+    </div>
+  </div>
+
+  <hr class="sidebar-divider">
+
+  <ul class="sidebar-nav" role="list">
+    <li class="nav-section-label">Menu Utama</li>
+    <li role="listitem">
+      <a href="{{ url_for('dashboard.index') }}"
+         class="sidebar-link {% if request.endpoint == 'dashboard.index' %}active{% endif %}"
+         data-tooltip="Dashboard"
+         aria-current="{% if request.endpoint == 'dashboard.index' %}page{% endif %}">
+        <i class="bi bi-speedometer2" aria-hidden="true"></i>
+        <span class="menu-text">
+          <span>Dashboard</span>
+          <span class="menu-desc">Ringkasan &amp; gambaran umum</span>
+        </span>
+      </a>
+    </li>
+    <li role="listitem">
+      <a href="{{ url_for('obat.list') }}"
+         class="sidebar-link {% if request.endpoint == 'obat.list' %}active{% endif %}"
+         data-tooltip="Data Obat"
+         aria-current="{% if request.endpoint == 'obat.list' %}page{% endif %}">
+        <i class="bi bi-capsule" aria-hidden="true"></i>
+        <span class="menu-text">
+          <span>Data Obat</span>
+          <span class="menu-desc">Tambah, edit, hapus obat</span>
+        </span>
+      </a>
+    </li>
+    <li role="listitem">
+      <a href="{{ url_for('obat.import_opname') }}"
+         class="sidebar-link opname-highlight {% if request.endpoint == 'obat.import_opname' %}active{% endif %}"
+         data-tooltip="Stok Opname"
+         aria-current="{% if request.endpoint == 'obat.import_opname' %}page{% endif %}">
+        <i class="bi bi-clipboard2-check" style="color:#059669" aria-hidden="true"></i>
+        <span class="menu-text">
+          <span>Stok Opname</span>
+          <span class="menu-desc" style="color:#059669;font-weight:700">Update Stok Bulanan</span>
+        </span>
+      </a>
+    </li>
+
+    <li class="nav-section-label">Analitik</li>
+    <li role="listitem">
+      <a href="{{ url_for('clustering.proses') }}"
+         class="sidebar-link {% if request.endpoint == 'clustering.proses' %}active{% endif %}"
+         data-tooltip="Proses Clustering"
+         aria-current="{% if request.endpoint == 'clustering.proses' %}page{% endif %}">
+        <i class="bi bi-diagram-3" aria-hidden="true"></i>
+        <span class="menu-text">
+          <span>Proses Clustering</span>
+          <span class="menu-desc">Kelompokkan obat otomatis</span>
+        </span>
+      </a>
+    </li>
+    <li role="listitem">
+      <a href="{{ url_for('clustering.hasil') }}"
+         class="sidebar-link {% if request.endpoint == 'clustering.hasil' %}active{% endif %}"
+         data-tooltip="Hasil Clustering"
+         aria-current="{% if request.endpoint == 'clustering.hasil' %}page{% endif %}">
+        <i class="bi bi-graph-up-arrow" aria-hidden="true"></i>
+        <span class="menu-text">
+          <span>Hasil Clustering</span>
+          <span class="menu-desc">Lihat kategori Fast/Slow</span>
+        </span>
+      </a>
+    </li>
+    <li role="listitem">
+      <a href="{{ url_for('eoq.rekomendasi') }}"
+         class="sidebar-link {% if request.blueprint == 'eoq' %}active{% endif %}"
+         data-tooltip="Rekomendasi EOQ"
+         aria-current="{% if request.blueprint == 'eoq' %}page{% endif %}">
+        <i class="bi bi-box-seam" aria-hidden="true"></i>
+        <span class="menu-text">
+          <span>Rekomendasi EOQ</span>
+          <span class="menu-desc">Jumlah &amp; waktu pesan obat</span>
+        </span>
+      </a>
+    </li>
+
+    <li class="nav-section-label">Laporan</li>
+    <li role="listitem">
+      <a href="{{ url_for('laporan.preview') }}"
+         class="sidebar-link {% if request.blueprint == 'laporan' %}active{% endif %}"
+         data-tooltip="Laporan PDF"
+         aria-current="{% if request.blueprint == 'laporan' %}page{% endif %}">
+        <i class="bi bi-file-earmark-pdf" aria-hidden="true"></i>
+        <span class="menu-text">
+          <span>Laporan PDF</span>
+          <span class="menu-desc">Cetak laporan pengadaan</span>
+        </span>
+      </a>
+    </li>
+
+    <li class="nav-section-label">Notifikasi</li>
+    <li role="listitem">
+      <a href="{{ url_for('alert.stok_kritis') }}"
+         class="sidebar-link {% if request.endpoint == 'alert.stok_kritis' or request.blueprint == 'alert' %}active{% endif %}"
+         data-tooltip="Stok Kritis"
+         aria-current="{% if request.endpoint == 'alert.stok_kritis' or request.blueprint == 'alert' %}page{% endif %}">
+        <i class="bi bi-bell-fill" aria-hidden="true"></i>
+        <span class="menu-text">
+          <span>Stok Kritis</span>
+          <span class="menu-desc">Obat yang perlu dipesan</span>
+        </span>
+      </a>
+    </li>
+  </ul>
+
+  <hr class="sidebar-divider">
+  <div class="sidebar-footer">
+    <a href="{{ url_for('auth.logout') }}" class="sidebar-link logout" data-tooltip="Keluar" aria-label="Keluar dari sistem">
+      <i class="bi bi-box-arrow-left" aria-hidden="true"></i>
+      <span class="menu-text">
+        <span>Keluar</span>
+        <span class="menu-desc">Logout dari sistem</span>
+      </span>
+    </a>
+  </div>
+</nav>
+
+<!-- ===== MAIN CONTENT ===== -->
+<div class="main-content" id="mainContent">
+  <!-- Topbar -->
+  <header class="topbar" role="banner">
+    <div class="d-flex align-items-center gap-3">
+      <button class="hamburger-btn" id="sidebarToggle"
+              aria-label="Buka atau tutup menu samping"
+              aria-expanded="false"
+              aria-controls="sidebar"
+              title="Buka/Tutup Menu">
+        <div class="hamburger-box">
+          <span class="hamburger-bar"></span>
+          <span class="hamburger-bar"></span>
+          <span class="hamburger-bar"></span>
+        </div>
+      </button>
+      <div class="topbar-breadcrumb d-none d-sm-flex" aria-label="Lokasi halaman">
+        <i class="bi bi-house-fill" style="color:#94a3b8" aria-hidden="true"></i>
+        <span class="breadcrumb-sep" aria-hidden="true">/</span>
+        <span class="breadcrumb-current">{% block page_name %}Halaman{% endblock %}</span>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <div class="topbar-datetime d-none d-md-flex" aria-label="Tanggal dan waktu">
+        <i class="bi bi-clock" aria-hidden="true"></i> {{ now }}
+      </div>
+      <!-- Notification Bell -->
+      <div class="notif-wrap" id="notifWrap">
+        <button class="btn-icon notif-btn" id="notifBtn"
+                aria-label="Notifikasi Stok Kritis"
+                aria-haspopup="true"
+                aria-expanded="false"
+                title="Notifikasi Stok">
+          <i class="bi bi-bell-fill" aria-hidden="true"></i>
+          <span class="notif-badge" id="notifBadge" style="display:none;" aria-live="polite" role="status">0</span>
+        </button>
+        <div class="notif-dropdown" id="notifDropdown" role="dialog" aria-label="Daftar stok kritis">
+          <div class="notif-header">
+            <span><i class="bi bi-bell-fill me-2" style="color:#f59e0b;" aria-hidden="true"></i>Stok Kritis</span>
+            <a href="{{ url_for('alert.stok_kritis') }}" class="notif-see-all">Lihat Semua</a>
+          </div>
+          <div id="notifList"><div class="notif-loading"><i class="bi bi-hourglass-split" aria-hidden="true"></i> Memuat...</div></div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Flash Messages -->
+  <div class="px-3 px-md-4 pt-3" role="alert" aria-live="polite">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for cat, msg in messages %}
+          <div class="alert alert-{{ cat }} alert-dismissible fade show d-flex align-items-start gap-2" role="alert">
+            <i class="bi {% if cat == 'success' %}bi-check-circle-fill{% elif cat == 'danger' %}bi-exclamation-triangle-fill{% elif cat == 'warning' %}bi-exclamation-circle-fill{% else %}bi-info-circle-fill{% endif %} mt-1 flex-shrink-0" aria-hidden="true"></i>
+            <div><span>{{ msg }}</span></div>
+            <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert" aria-label="Tutup pesan"></button>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+  </div>
+
+  <!-- Page Content -->
+  <main class="page-content" id="pageContent">
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- Footer -->
+  <footer class="app-footer" role="contentinfo">
+    <div>
+      &copy; {% set yr = now.split(' ') %}{{ yr[2][:4] if yr|length >= 3 else '2026' }}
+      <strong>Apotek Signa Medika</strong> &mdash; Sistem Pendukung Keputusan Pengadaan Obat
+      &nbsp;|&nbsp; K-Means Clustering &amp; EOQ
+    </div>
+    <div class="footer-location">
+      <i class="bi bi-geo-alt-fill me-1"></i>Kec. Legonkulon, Kab. Subang, Jawa Barat
+    </div>
+  </footer>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script>
+  // ===== SIDEBAR TOGGLE & UX ENHANCEMENTS =====
+  const sidebar    = document.getElementById('sidebar');
+  const overlay    = document.getElementById('sidebarOverlay');
+  const toggleBtn  = document.getElementById('sidebarToggle');
+  const closeBtn   = document.getElementById('sidebarCloseBtn');
+
+  function openSidebar() {
+    sidebar.classList.add('open');
+    overlay.classList.add('active');
+    toggleBtn.classList.add('is-active');
+    toggleBtn.setAttribute('aria-expanded', 'true');
+    if (window.innerWidth < 992) document.body.style.overflow = 'hidden';
+  }
+
+  function closeSidebar() {
+    sidebar.classList.remove('open');
+    overlay.classList.remove('active');
+    toggleBtn.classList.remove('is-active');
+    toggleBtn.setAttribute('aria-expanded', 'false');
+    document.body.style.overflow = '';
+  }
+
+  toggleBtn.addEventListener('click', function () {
+    if (window.innerWidth < 992) {
+      if (sidebar.classList.contains('open')) {
+        closeSidebar();
+      } else {
+        openSidebar();
+      }
+    } else {
+      const isToggled = document.body.classList.toggle('sidebar-toggled');
+      this.classList.toggle('is-active', isToggled);
+      this.setAttribute('aria-expanded', String(isToggled));
+    }
+  });
+
+  if (closeBtn) {
+    closeBtn.addEventListener('click', closeSidebar);
+  }
+
+  overlay.addEventListener('click', closeSidebar);
+
+  // Press ESC to close sidebar on mobile
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && sidebar.classList.contains('open')) {
+      closeSidebar();
+    }
+  });
+
+  // Close sidebar when clicking a link on mobile
+  document.querySelectorAll('.sidebar-link').forEach(link => {
+    link.addEventListener('click', function() {
+      if (window.innerWidth < 992) closeSidebar();
+    });
+  });
+
+  // Auto-dismiss success flash alerts after 6 seconds (keep danger/warning visible for reading)
+  setTimeout(() => {
+    document.querySelectorAll('.alert-success.show').forEach(el => {
+      const bsAlert = bootstrap.Alert.getOrCreateInstance(el);
+      if (bsAlert) bsAlert.close();
+    });
+  }, 6000);
+
+  // ===== NOTIFICATION BELL =====
+  const notifBtn  = document.getElementById('notifBtn');
+  const notifDrop = document.getElementById('notifDropdown');
+  const notifList = document.getElementById('notifList');
+  const notifBadge = document.getElementById('notifBadge');
+
+  function loadNotif() {
+    fetch('/alert/notif-data')
+      .then(r => r.json())
+      .then(data => {
+        const items = data.items || [];
+        if (items.length > 0) {
+          notifBadge.textContent = items.length;
+          notifBadge.style.display = 'flex';
+        } else {
+          notifBadge.style.display = 'none';
+        }
+        if (items.length === 0) {
+          notifList.innerHTML = '<div class="notif-empty"><i class="bi bi-check-circle-fill" aria-hidden="true"></i>Semua stok aman! 👍</div>';
+        } else {
+          notifList.innerHTML = items.slice(0, 6).map(o => `
+            <div class="notif-item">
+              <div class="notif-dot" aria-hidden="true"></div>
+              <div>
+                <div class="notif-item-name">${o.nama_obat}</div>
+                <div class="notif-item-detail">Stok: ${o.stok} ${o.satuan} &nbsp;|&nbsp; ROP: ${o.rop} &nbsp;|&nbsp; <span style="color:#ef4444;font-weight:600;">${o.cluster}</span></div>
+              </div>
+            </div>`).join('') +
+            (items.length > 6 ? `<div class="notif-footer"><a href="/alert/stok-kritis">+${items.length-6} obat lainnya →</a></div>` : '');
+        }
+      })
+      .catch(() => {
+        notifList.innerHTML = '<div class="notif-loading">Gagal memuat data</div>';
+      });
+  }
+
+  notifBtn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    const isOpen = notifDrop.classList.toggle('open');
+    this.setAttribute('aria-expanded', String(isOpen));
+    if (isOpen) loadNotif();
+  });
+
+  document.addEventListener('click', function(e) {
+    if (!document.getElementById('notifWrap').contains(e.target)) {
+      notifDrop.classList.remove('open');
+      notifBtn.setAttribute('aria-expanded', 'false');
+    }
+  });
+
+  // Load badge count on page load
+  function loadBadgeOnly() {
+    fetch('/alert/notif-data')
+      .then(r => r.json())
+      .then(data => {
+        const count = (data.items || []).length;
+        if (count > 0) {
+          notifBadge.textContent = count;
+          notifBadge.style.display = 'flex';
+        } else {
+          notifBadge.style.display = 'none';
+        }
+      })
+      .catch(() => { /* silent fail */ });
+  }
+
+  window.addEventListener('DOMContentLoaded', () => {
+    setTimeout(loadBadgeOnly, 1000);
+  });
+  // Auto-refresh badge setiap 5 menit
+  setInterval(loadBadgeOnly, 5 * 60 * 1000);
+</script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

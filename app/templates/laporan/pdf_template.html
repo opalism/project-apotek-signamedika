@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>Laporan Pengadaan Obat — Apotek Signa Medika</title>
+<style>
+  body { font-family: Arial, sans-serif; font-size: 11px; color: #1a1a1a; margin: 0; padding: 20px; }
+  h1 { font-size: 15px; text-align: center; margin: 0 0 2px; }
+  .subtitle { text-align: center; color: #555; font-size: 10px; margin-bottom: 16px; }
+  .info-box { display: flex; gap: 40px; background: #f5f5f5; padding: 8px 12px; border-radius: 4px; margin-bottom: 14px; font-size: 10px; }
+  table { width: 100%; border-collapse: collapse; margin-top: 4px; }
+  thead th { background: #1d4ed8; color: #fff; padding: 6px 8px; font-size: 10px; text-align: left; }
+  thead th.r { text-align: right; }
+  tbody td { padding: 5px 8px; border-bottom: 1px solid #eee; font-size: 10px; vertical-align: middle; }
+  tbody td.r { text-align: right; }
+  tbody tr:nth-child(even) { background: #fafafa; }
+  .badge { border-radius: 3px; padding: 2px 6px; font-size: 9px; font-weight: bold; }
+  .fast   { background: #dcfce7; color: #15803d; }
+  .medium { background: #fef9c3; color: #92400e; }
+  .slow   { background: #fee2e2; color: #991b1b; }
+  .footer { text-align: center; color: #999; font-size: 9px; margin-top: 20px; border-top: 1px solid #eee; padding-top: 8px; }
+</style>
+</head>
+<body>
+<h1>Laporan Analitik Pengadaan Obat</h1>
+<div class="subtitle">Apotek Signa Medika &mdash; Sistem Pendukung Keputusan Berbasis K-Means &amp; EOQ</div>
+
+{% if riwayat %}
+<div class="info-box">
+  <div><strong>Tanggal Cetak:</strong> {{ tanggal }}</div>
+  <div><strong>Tanggal Proses:</strong> {{ riwayat.tanggal_proses.strftime('%d %b %Y %H:%M') }}</div>
+  <div><strong>K (Cluster):</strong> {{ riwayat.jumlah_cluster }}</div>
+  <div><strong>DBI:</strong> {{ riwayat.dbi_score }}</div>
+  <div><strong>Silhouette:</strong> {{ riwayat.silhouette_score }}</div>
+</div>
+{% endif %}
+
+<table>
+  <thead>
+    <tr>
+      <th>No</th><th>Nama Obat</th><th>Supplier</th><th>Kat.</th><th>Sat.</th>
+      <th>Cluster</th>
+      <th class="r">Terjual/Bln</th><th class="r">Stok</th>
+      <th class="r">ROP</th><th class="r">Kebut. 1 Mgg</th><th class="r">EOQ Teoritis</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for r in hasil %}
+    <tr>
+      <td>{{ loop.index }}</td>
+      <td><strong>{{ r.nama_obat }}</strong></td>
+      <td>{{ r.supplier or '-' }}</td>
+      <td>{{ r.kategori or '-' }}</td>
+      <td>{{ r.satuan or '-' }}</td>
+      <td>
+        <span class="badge {% if 'Fast' in r.cluster_label %}fast{% elif 'Medium' in r.cluster_label %}medium{% else %}slow{% endif %}">
+          {{ r.cluster_label }}
+        </span>
+      </td>
+      <td class="r">{{ r.jumlah_terjual_per_bulan or 0 }}</td>
+      <td class="r">{{ r.stok_rata_rata or 0 }}</td>
+      <td class="r">{{ r.reorder_point | int }}</td>
+      <td class="r">
+        <strong>{{ r.kebutuhan_mingguan | int }}</strong>
+      </td>
+      <td class="r">{{ r.eoq | int }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<div class="footer">
+  Dicetak oleh Sistem Pendukung Keputusan Pengadaan Obat — Apotek Signa Medika &mdash; {{ tanggal }}
+</div>
+</body>
+</html>

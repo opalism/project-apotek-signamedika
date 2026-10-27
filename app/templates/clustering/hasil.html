@@ -1,0 +1,518 @@
+{% extends 'layout/base.html' %}
+{% block title %}Hasil Clustering — Apotek Signa Medika{% endblock %}
+{% block page_name %}Hasil Clustering{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-4">
+  <div>
+    <h1 class="page-title"><i class="bi bi-graph-up-arrow me-2 text-primary"></i>Hasil Pengelompokan Obat</h1>
+    <p class="page-subtitle">Obat dikelompokkan secara otomatis berdasarkan pola penjualan menggunakan K-Means Clustering</p>
+  </div>
+  <a href="{{ url_for('clustering.proses') }}" class="btn btn-outline-primary btn-sm">
+    <i class="bi bi-arrow-repeat"></i> Kelompokkan Ulang
+  </a>
+</div>
+
+<!-- Skor Kualitas Clustering -->
+{% if riwayat %}
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="stat-card text-center">
+      {% set dbi = riwayat.dbi_score | float %}
+      <div class="stat-number {% if dbi < 1 %}score-good{% elif dbi < 2 %}score-ok{% else %}score-bad{% endif %}" style="font-size:1.7rem">
+        {{ riwayat.dbi_score }}
+      </div>
+      <div class="stat-label">Davies-Bouldin Index (DBI)</div>
+      <div class="stat-hint">
+        {% if dbi < 1 %}<i class="bi bi-check-circle-fill text-success"></i> Sangat baik
+        {% elif dbi < 2 %}<i class="bi bi-check-circle text-warning"></i> Cukup baik
+        {% else %}<i class="bi bi-x-circle text-danger"></i> Kurang optimal{% endif %}
+        — makin kecil makin baik
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card text-center">
+      {% set sil = riwayat.silhouette_score | float %}
+      <div class="stat-number {% if sil > 0.5 %}score-good{% elif sil > 0.25 %}score-ok{% else %}score-bad{% endif %}" style="font-size:1.7rem">
+        {{ riwayat.silhouette_score }}
+      </div>
+      <div class="stat-label">Silhouette Score</div>
+      <div class="stat-hint">
+        {% if sil > 0.5 %}<i class="bi bi-check-circle-fill text-success"></i> Sangat baik
+        {% elif sil > 0.25 %}<i class="bi bi-check-circle text-warning"></i> Cukup baik
+        {% else %}<i class="bi bi-x-circle text-danger"></i> Kurang optimal{% endif %}
+        — makin besar makin baik
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card text-center">
+      <div class="stat-number" style="font-size:1.7rem">{{ riwayat.jumlah_cluster }}</div>
+      <div class="stat-label">Jumlah Kelompok (K)</div>
+      <div class="stat-hint">Kelompok yang dibentuk saat proses clustering</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card text-center">
+      <div class="stat-number" style="font-size:1.7rem">{{ riwayat.jumlah_data }}</div>
+      <div class="stat-label">Total Obat Diproses</div>
+      <div class="stat-hint">Obat yang berhasil dikelompokkan</div>
+    </div>
+  </div>
+</div>
+
+<!-- Penjelasan skor untuk orang awam -->
+<div class="info-box-sm mb-4">
+  <strong><i class="bi bi-info-circle me-1"></i>Cara membaca skor kualitas:</strong>
+  <strong>DBI</strong> (Davies-Bouldin Index) = ukuran seberapa terpisah antar kelompok — <em>semakin kecil semakin baik</em>.
+  <strong>Silhouette Score</strong> = ukuran seberapa "tepat" obat masuk ke kelompoknya — <em>semakin mendekati 1.0 semakin baik</em>.
+</div>
+{% endif %}
+
+<!-- Ringkasan per Kelompok -->
+<div class="row g-3 mb-4">
+  {% for label, cnt in summary.items() %}
+  {% if 'Fast' in label %}
+    {% set icon_wrapper_cls = 'stat-icon-wrapper bg-success bg-opacity-10 text-success' %}
+    {% set icon_cls = 'bi-arrow-up-circle' %}
+  {% elif 'Medium' in label %}
+    {% set icon_wrapper_cls = 'stat-icon-wrapper bg-warning bg-opacity-10 text-warning' %}
+    {% set icon_cls = 'bi-dash-circle' %}
+  {% else %}
+    {% set icon_wrapper_cls = 'stat-icon-wrapper bg-danger bg-opacity-10 text-danger' %}
+    {% set icon_cls = 'bi-arrow-down-circle' %}
+  {% endif %}
+  <div class="col-md-4">
+    <div class="stat-card h-100">
+      <div class="d-flex align-items-center gap-3">
+        <div class="{{ icon_wrapper_cls }}" style="width:50px;height:50px;border-radius:14px;display:flex;align-items:center;justify-content:center">
+          <i class="bi {{ icon_cls }}" style="font-size:1.4rem"></i>
+        </div>
+        <div>
+          <div class="stat-number" style="font-size:1.8rem">{{ cnt }}</div>
+          <div class="stat-label">
+            <span class="{% if 'Fast' in label %}badge-fast{% elif 'Medium' in label %}badge-medium{% else %}badge-slow{% endif %}">
+              {{ label }}
+            </span>
+          </div>
+          <div class="stat-hint">
+            {% if 'Fast' in label %}Restock sering — prioritas utama
+            {% elif 'Medium' in label %}Pantau rutin — pesan sesuai ROP
+            {% else %}Pesan sedikit — tidak perlu banyak stok{% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="row g-4">
+  <!-- Scatter Chart -->
+  <div class="col-md-6">
+    <div class="card-m">
+      <div class="card-m-header">
+        <span class="card-m-title"><i class="bi bi-scatter-chart me-2 text-primary"></i>Visualisasi Persebaran Obat</span>
+      </div>
+      <div class="card-m-body">
+        <div class="chart-wrap"><canvas id="chartScatter"></canvas></div>
+        <div class="d-flex gap-3 mt-3 justify-content-center flex-wrap" style="font-size:.82rem">
+          <span><span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:#16a34a;vertical-align:middle"></span> Fast Moving</span>
+          <span><span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:#d97706;vertical-align:middle"></span> Medium Moving</span>
+          <span><span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:#dc2626;vertical-align:middle"></span> Slow Moving</span>
+        </div>
+        <div class="form-text text-center mt-2">
+          <i class="bi bi-cursor me-1"></i>Arahkan kursor ke titik untuk melihat nama obat
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabel Hasil -->
+  <div class="col-md-6">
+    <div class="card-m">
+      <div class="card-m-header">
+        <span class="card-m-title"><i class="bi bi-table me-2 text-primary"></i>Daftar Hasil Pengelompokan</span>
+        <span class="text-muted small">{{ hasil_list | length }} obat</span>
+      </div>
+      <div style="max-height:460px;overflow-y:auto">
+        <table class="table table-modern mb-0">
+          <thead style="position:sticky;top:0;z-index:1">
+            <tr>
+              <th>Nama Obat</th>
+              <th class="text-end">
+                <span class="th-explain">
+                  Terjual/Bln
+                  <span class="help-hint" data-tooltip="Rata-rata jumlah unit terjual per bulan.">?</span>
+                </span>
+              </th>
+              <th class="text-center">Kelompok</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in hasil_list %}
+            <tr>
+              <td class="fw-600" style="font-size:.84rem">{{ r.nama_obat }}</td>
+              <td class="text-end">{{ r.jumlah_terjual_per_bulan or 0 }}</td>
+              <td class="text-center">
+                <span class="{% if 'Fast' in r.cluster_label %}badge-fast{% elif 'Medium' in r.cluster_label %}badge-medium{% else %}badge-slow{% endif %}">
+                  {{ r.cluster_label }}
+                </span>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Langkah Selanjutnya -->
+    <div class="card-m mt-3" style="border-color:#bbf7d0;background:#f0fdf4">
+      <div class="card-m-body">
+        <div class="fw-700 mb-2" style="font-size:.9rem;color:#15803d">
+          <i class="bi bi-check-circle-fill me-2"></i>Pengelompokan Selesai! Langkah Selanjutnya:
+        </div>
+        <p class="text-muted mb-3" style="font-size:.83rem">
+          Gunakan hasil pengelompokan ini untuk melihat rekomendasi jumlah dan waktu pemesanan yang optimal.
+        </p>
+        <a href="{{ url_for('eoq.rekomendasi') }}" class="btn btn-primary btn-sm">
+          <i class="bi bi-box-seam"></i> Lihat Rekomendasi Pengadaan &rarr;
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% if detail_perhitungan %}
+<!-- Card Detail Perhitungan K-Means Sidang Akhir -->
+<div class="card-m mt-4 animate-in">
+  <div class="card-m-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+    <div>
+      <span class="card-m-title"><i class="bi bi-cpu me-2 text-primary"></i>Detail Perhitungan K-Means Clustering (Sidang Akhir)</span>
+      <p class="text-muted mb-0" style="font-size:.8rem">Transparansi matematis penuh: Min-Max, Iterasi Centroid, Matriks Jarak Euclidean, & Validasi Akademik</p>
+    </div>
+    <span class="badge bg-primary bg-opacity-10 text-primary px-3 py-2" style="border-radius:99px;font-size:.8rem">
+      <i class="bi bi-shield-check me-1"></i>Verifikasi Metrik Akademik
+    </span>
+  </div>
+  <div class="card-m-body">
+    <!-- Nav Tabs -->
+    <ul class="nav nav-tabs nav-tabs-custom mb-3" id="kmeansDetailTabs" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="tab-summary-tab" data-bs-toggle="tab" data-bs-target="#tab-summary" type="button" role="tab">
+          <i class="bi bi-sliders me-1"></i>1. Ringkasan & Min-Max
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab-tracing-tab" data-bs-toggle="tab" data-bs-target="#tab-tracing" type="button" role="tab">
+          <i class="bi bi-arrow-repeat me-1"></i>2. Tracing Iterasi ({{ detail_perhitungan.n_iter }} Iterasi)
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab-centroid-tab" data-bs-toggle="tab" data-bs-target="#tab-centroid" type="button" role="tab">
+          <i class="bi bi-geo-alt me-1"></i>3. Centroid Akhir
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab-distance-tab" data-bs-toggle="tab" data-bs-target="#tab-distance" type="button" role="tab">
+          <i class="bi bi-grid-3x3 me-1"></i>4. Matriks Jarak Euclidean
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab-formula-tab" data-bs-toggle="tab" data-bs-target="#tab-formula" type="button" role="tab">
+          <i class="bi bi-book me-1"></i>5. Formula & Validasi
+        </button>
+      </li>
+    </ul>
+
+    <!-- Tab Contents -->
+    <div class="tab-content" id="kmeansDetailTabContent">
+      <!-- Tab 1: Ringkasan & Normalisasi Min-Max -->
+      <div class="tab-pane fade show active" id="tab-summary" role="tabpanel">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <div class="p-3 border rounded-3 bg-light">
+              <h6 class="fw-700 text-dark mb-2"><i class="bi bi-aspect-ratio me-2 text-primary"></i>Parameter Normalisasi Min-Max</h6>
+              <p class="text-muted small mb-3">Semua fitur dinormalisasi ke rentang [0, 1] menggunakan formula: X' = (X - X_min) / (X_max - X_min)</p>
+              <table class="table table-sm table-bordered bg-white mb-0" style="font-size:.85rem">
+                <thead class="table-light">
+                  <tr>
+                    <th>Fitur (Variabel)</th>
+                    <th class="text-end">Minimum ($X_{min}$)</th>
+                    <th class="text-end">Maksimum ($X_{max}$)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>Jumlah Terjual/Bln ($X$)</strong></td>
+                    <td class="text-end fw-600">{{ detail_perhitungan.terjual_min }} unit</td>
+                    <td class="text-end fw-600">{{ detail_perhitungan.terjual_max }} unit</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Harga Jual ($Y$)</strong></td>
+                    <td class="text-end fw-600">Rp {{ "{:,.0f}".format(detail_perhitungan.harga_min) }}</td>
+                    <td class="text-end fw-600">Rp {{ "{:,.0f}".format(detail_perhitungan.harga_max) }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="p-3 border rounded-3 bg-light">
+              <h6 class="fw-700 text-dark mb-2"><i class="bi bi-speedometer2 me-2 text-primary"></i>Metrik Kinerja Konvergensi</h6>
+              <div class="row g-2 text-center mt-2">
+                <div class="col-6">
+                  <div class="bg-white p-2 border rounded">
+                    <div class="text-muted" style="font-size:.75rem">Total Iterasi Konvergen</div>
+                    <div class="fw-700 text-primary" style="font-size:1.3rem">{{ detail_perhitungan.n_iter }}</div>
+                    <div class="text-muted" style="font-size:.7rem">Iterasi sampai stabil</div>
+                  </div>
+                </div>
+                <div class="col-6">
+                  <div class="bg-white p-2 border rounded">
+                    <div class="text-muted" style="font-size:.75rem">Inersia (WCSS)</div>
+                    <div class="fw-700 text-dark" style="font-size:1.3rem">{{ detail_perhitungan.wcss }}</div>
+                    <div class="text-muted" style="font-size:.7rem">Within-Cluster Sum of Squares</div>
+                  </div>
+                </div>
+                <div class="col-6">
+                  <div class="bg-white p-2 border rounded">
+                    <div class="text-muted" style="font-size:.75rem">Davies-Bouldin Index</div>
+                    <div class="fw-700 text-success" style="font-size:1.3rem">{{ detail_perhitungan.dbi }}</div>
+                    <div class="text-muted" style="font-size:.7rem">Lebih kecil = lebih terpisah</div>
+                  </div>
+                </div>
+                <div class="col-6">
+                  <div class="bg-white p-2 border rounded">
+                    <div class="text-muted" style="font-size:.75rem">Silhouette Score</div>
+                    <div class="fw-700 text-success" style="font-size:1.3rem">{{ detail_perhitungan.silhouette }}</div>
+                    <div class="text-muted" style="font-size:.7rem">Lebih mendekati 1.0 = lebih baik</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 2: Tracing Iterasi Centroid -->
+      <div class="tab-pane fade" id="tab-tracing" role="tabpanel">
+        <p class="text-muted small mb-2"><i class="bi bi-info-circle me-1"></i>Tabel pergeseran posisi centroid dari Iterasi 0 (Inisialisasi) hingga Iterasi {{ detail_perhitungan.n_iter }} (Konvergen):</p>
+        <div class="table-responsive">
+          <table class="table table-sm table-hover table-bordered mb-0" style="font-size:.83rem">
+            <thead class="table-light">
+              <tr>
+                <th class="text-center" style="width:70px">Iterasi</th>
+                {% for c in detail_perhitungan.centroid_history[0].centroids %}
+                <th class="text-center">Centroid {{ c.raw_id }} ({{ c.label }}) [X_norm, Y_norm]</th>
+                {% endfor %}
+              </tr>
+            </thead>
+            <tbody>
+              {% for step in detail_perhitungan.centroid_history %}
+              <tr>
+                <td class="text-center fw-700 {% if loop.last %}bg-success bg-opacity-10 text-success{% endif %}">
+                  Iterasi {{ step.iter }}
+                  {% if loop.first %}<br><span class="badge bg-secondary" style="font-size:.65rem">Inisialisasi</span>{% endif %}
+                  {% if loop.last %}<br><span class="badge bg-success" style="font-size:.65rem">Konvergen</span>{% endif %}
+                </td>
+                {% for c in step.centroids %}
+                <td class="text-center">
+                  <span class="font-monospace text-primary">[{{ c.x_norm }}, {{ c.y_norm }}]</span><br>
+                  <span class="text-muted" style="font-size:.72rem">({{ c.x_orig }} unit, Rp{{ "{:,.0f}".format(c.y_orig) }})</span>
+                </td>
+                {% endfor %}
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Tab 3: Centroid Akhir -->
+      <div class="tab-pane fade" id="tab-centroid" role="tabpanel">
+        <div class="table-responsive">
+          <table class="table table-bordered table-hover mb-0" style="font-size:.85rem">
+            <thead class="table-light">
+              <tr>
+                <th>Kelompok (Cluster Label)</th>
+                <th class="text-center">Raw Cluster ID</th>
+                <th class="text-center">Normalisasi Terjual ($X_{norm}$)</th>
+                <th class="text-center">Normalisasi Harga ($Y_{norm}$)</th>
+                <th class="text-end">Nilai Asli Terjual/Bln</th>
+                <th class="text-end">Nilai Asli Harga Jual</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for c in detail_perhitungan.final_centroids %}
+              <tr>
+                <td>
+                  <span class="{% if 'Fast' in c.label %}badge-fast{% elif 'Medium' in c.label %}badge-medium{% else %}badge-slow{% endif %}">
+                    {{ c.label }}
+                  </span>
+                </td>
+                <td class="text-center fw-600">Cluster {{ c.raw_id }}</td>
+                <td class="text-center font-monospace">{{ c.x_norm }}</td>
+                <td class="text-center font-monospace">{{ c.y_norm }}</td>
+                <td class="text-end fw-700">{{ c.x_orig }} unit</td>
+                <td class="text-end fw-700">Rp {{ "{:,.0f}".format(c.y_orig) }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Tab 4: Matriks Jarak Euclidean -->
+      <div class="tab-pane fade" id="tab-distance" role="tabpanel">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+          <span class="text-muted small">Matriks jarak Euclidean d(x_i, C_k) untuk {{ detail_perhitungan.total_data }} obat:</span>
+          <div class="search-box">
+            <i class="bi bi-search"></i>
+            <input type="text" id="searchMatriksJarak" class="form-control form-control-sm" placeholder="Cari obat di matriks jarak..." style="max-width:220px">
+          </div>
+        </div>
+        <div class="table-responsive" style="max-height:400px;overflow-y:auto">
+          <table class="table table-sm table-hover table-bordered mb-0" id="tblMatriksJarak" style="font-size:.82rem">
+            <thead class="table-light" style="position:sticky;top:0;z-index:1">
+              <tr>
+                <th style="width:40px">No</th>
+                <th>Nama Obat</th>
+                <th class="text-center">Data Asli [Terjual, Harga]</th>
+                <th class="text-center">Min-Max [X_norm, Y_norm]</th>
+                <th class="text-center">d(x, C_Slow)</th>
+                <th class="text-center">d(x, C_Medium)</th>
+                <th class="text-center">d(x, C_Fast)</th>
+                <th class="text-center">Jarak Min ($d_{min}$)</th>
+                <th class="text-center">Klaster Terpilih</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for d in detail_perhitungan.matriks_jarak %}
+              <tr class="row-matriks-jarak" data-nama="{{ d.nama }}">
+                <td class="text-muted idx-num">{{ loop.index }}</td>
+                <td class="fw-600">{{ d.nama }}</td>
+                <td class="text-center text-muted">[{{ d.terjual_orig }} unit, Rp{{ "{:,.0f}".format(d.harga_orig) }}]</td>
+                <td class="text-center font-monospace">[{{ d.x_norm }}, {{ d.y_norm }}]</td>
+                <td class="text-center {% if d.assigned_label == 'Slow Moving' %}bg-danger bg-opacity-10 fw-700 text-danger{% endif %}">
+                  {{ d.distances['Slow Moving'] }}
+                </td>
+                <td class="text-center {% if d.assigned_label == 'Medium Moving' %}bg-warning bg-opacity-10 fw-700 text-warning{% endif %}">
+                  {{ d.distances['Medium Moving'] }}
+                </td>
+                <td class="text-center {% if d.assigned_label == 'Fast Moving' %}bg-success bg-opacity-10 fw-700 text-success{% endif %}">
+                  {{ d.distances['Fast Moving'] }}
+                </td>
+                <td class="text-center fw-700 text-primary">{{ d.min_dist }}</td>
+                <td class="text-center">
+                  <span class="{% if 'Fast' in d.assigned_label %}badge-fast{% elif 'Medium' in d.assigned_label %}badge-medium{% else %}badge-slow{% endif %}">
+                    {{ d.assigned_label }}
+                  </span>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Tab 5: Formula & Validasi Akademik -->
+      <div class="tab-pane fade" id="tab-formula" role="tabpanel">
+        <div class="row g-3" style="font-size:.85rem">
+          <div class="col-md-6">
+            <div class="p-3 border rounded bg-white">
+              <h6 class="fw-700 text-primary mb-2">1. Formula Normalisasi Min-Max</h6>
+              <p class="font-monospace bg-light p-2 rounded mb-2">X' = (X - X_min) / (X_max - X_min)</p>
+              <p class="text-muted mb-0">Transformasi fitur jumlah_terjual_per_bulan dan harga_jual ke dalam rentang [0, 1] agar bobot perbedaan skala tidak mendominasi perhitungan jarak Euclidean.</p>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="p-3 border rounded bg-white">
+              <h6 class="fw-700 text-primary mb-2">2. Formula Jarak Euclidean</h6>
+              <p class="font-monospace bg-light p-2 rounded mb-2">d(p, q) = √((p1 - q1)² + (p2 - q2)²)</p>
+              <p class="text-muted mb-0">Mengukur jarak geometris tiap item obat $p$ terhadap titik pusat cluster $q$ (centroid) pada ruang 2 dimensi ter-normalisasi.</p>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="p-3 border rounded bg-white">
+              <h6 class="fw-700 text-primary mb-2">3. Formula Weekly EOQ (EOQ per Minggu)</h6>
+              <p class="font-monospace bg-light p-2 rounded mb-2">EOQ_minggu = √((2 × D_minggu × S) / H_minggu)</p>
+              <p class="text-muted mb-0">Mengoptimalkan kuantitas belanja berdasarkan kebutuhan mingguan D_minggu = (D_bulan × 12) / 52 dan biaya simpan mingguan H_minggu = H_tahun / 52.</p>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="p-3 border rounded bg-white">
+              <h6 class="fw-700 text-primary mb-2">4. Formula Davies-Bouldin Index (DBI)</h6>
+              <p class="font-monospace bg-light p-2 rounded mb-2">DBI = (1/k) × Σ max_j≠i ((S_i + S_j) / M_ij)</p>
+              <p class="text-muted mb-0">Metrik validasi klaster: S_i adalah dispersi internal klaster, dan M_ij adalah jarak antar centroid. Nilai semakin kecil mengindikasikan pemisahan yang semakin presisi.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script type="application/json" id="data-scatter">{{ scatter_data | safe }}</script>
+<script>
+const raw = JSON.parse(document.getElementById('data-scatter').textContent);
+const groups = {};
+raw.forEach(p => {
+  if (!groups[p.cluster]) {
+    groups[p.cluster] = {
+      label: p.cluster,
+      data: [],
+      backgroundColor: p.color + 'cc',
+      pointRadius: 8,
+      pointHoverRadius: 10
+    };
+  }
+  groups[p.cluster].data.push({ x: p.x, y: p.y, label: p.label });
+});
+
+new Chart(document.getElementById('chartScatter'), {
+  type: 'scatter',
+  data: { datasets: Object.values(groups) },
+  options: {
+    plugins: {
+      legend: { position: 'bottom', labels: { font: { family: 'Plus Jakarta Sans', size: 12, weight: '700' }, padding: 14 } },
+      tooltip: {
+        callbacks: {
+          label: ctx => {
+            const p = ctx.raw;
+            return ` ${p.label} — Terjual: ${p.x} unit/bln | Harga: Rp${p.y.toLocaleString('id')}`;
+          }
+        }
+      }
+    },
+    scales: {
+      x: { title: { display: true, text: 'Jumlah Terjual per Bulan (unit)', font: { family: 'Plus Jakarta Sans', size: 12, weight: '700' } }, grid: { color: '#f1f5f9' } },
+      y: { title: { display: true, text: 'Harga Jual (Rp)', font: { family: 'Plus Jakarta Sans', size: 12, weight: '700' } }, grid: { color: '#f1f5f9' } }
+    }
+  }
+});
+
+// Search filter for Matriks Jarak Euclidean
+const searchMatriks = document.getElementById('searchMatriksJarak');
+if (searchMatriks) {
+  searchMatriks.addEventListener('input', function() {
+    const q = this.value.toLowerCase();
+    const rows = document.querySelectorAll('.row-matriks-jarak');
+    let visibleIndex = 1;
+    rows.forEach(r => {
+      const name = r.dataset.nama.toLowerCase();
+      if (name.includes(q)) {
+        r.style.display = '';
+        r.querySelector('.idx-num').textContent = visibleIndex++;
+      } else {
+        r.style.display = 'none';
+      }
+    });
+  });
+}
+</script>
+{% endblock %}
+

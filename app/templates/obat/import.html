@@ -1,0 +1,140 @@
+{% extends 'layout/base.html' %}
+{% block title %}Import Data dari Excel — Apotek Signa Medika{% endblock %}
+{% block page_name %}Import Excel{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+  <a href="{{ url_for('obat.list') }}" class="text-decoration-none text-muted small">
+    <i class="bi bi-arrow-left me-1"></i>Kembali ke Daftar Obat
+  </a>
+  <h1 class="page-title mt-2">
+    <i class="bi bi-file-earmark-excel me-2 text-success"></i>Import Data dari Excel
+  </h1>
+  <p class="page-subtitle">Upload file Excel (.xlsx) untuk memasukkan banyak data obat sekaligus — lebih cepat dari memasukkan satu per satu.</p>
+</div>
+
+<div class="row g-4">
+  <div class="col-md-7">
+    <div class="card-m">
+      <div class="card-m-header">
+        <span class="card-m-title"><i class="bi bi-upload me-2 text-primary"></i>Pilih & Upload File</span>
+      </div>
+      <div class="card-m-body">
+        <form method="POST" enctype="multipart/form-data" id="formImport">
+          <!-- Dropzone -->
+          <div class="dropzone-area mb-3" id="dropzone">
+            <i class="bi bi-cloud-upload"></i>
+            <p class="mb-2"><strong>Klik di sini</strong> atau seret file ke area ini</p>
+            <p style="font-size:.78rem">Format yang didukung: <strong>.xlsx</strong>, <strong>.xls</strong>, <strong>.csv</strong> — Maks. 16 MB</p>
+            <div id="fileNameDisplay" class="mt-2 text-primary fw-600" style="font-size:.85rem;display:none"></div>
+          </div>
+
+          <input type="file" name="file" id="fileInput"
+                 accept=".xlsx,.xls,.csv" required
+                 style="display:none">
+
+          <!-- Checkbox untuk Automatisasi Clustering -->
+          <div class="form-check mb-3 mt-3">
+            <input class="form-check-input" type="checkbox" name="auto_cluster" id="autoCluster" checked>
+            <label class="form-check-label fw-600 text-dark" for="autoCluster" style="font-size:.85rem">
+              Otomatis hitung K-Means & EOQ setelah import selesai (Opsi Cepat)
+            </label>
+            <div class="form-text" style="font-size:.75rem">Sistem akan menyesuaikan rekomendasi dari nilai stok dan terjual terbaru.</div>
+          </div>
+
+          <button type="submit" class="btn btn-primary px-4 w-100" id="btnImport" disabled>
+            <i class="bi bi-cloud-upload"></i> Import & Update Data
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-5">
+    <!-- Panduan Format -->
+    <div class="card-m mb-3">
+      <div class="card-m-header"><span class="card-m-title"><i class="bi bi-info-circle me-2 text-primary"></i>Panduan Format File</span></div>
+      <div class="card-m-body">
+        <p class="text-muted mb-3" style="font-size:.84rem">
+          File Excel harus memiliki sheet bernama <code><strong>Data Obat</strong></code> (persis seperti ini) dengan kolom-kolom berikut:
+        </p>
+        <ul class="list-unstyled mb-0" style="font-size:.82rem">
+          {% for col in [
+            ('Nama Obat', 'Nama lengkap obat'),
+            ('Kategori', 'Jenis/kelompok obat'),
+            ('Satuan', 'Tablet, Kapsul, Botol, dll'),
+            ('Jumlah Terjual per Bulan', 'Rata-rata unit terjual/bulan'),
+            ('Harga Beli (Rp)', 'Harga dari supplier'),
+            ('Harga Jual (Rp)', 'Harga ke pasien'),
+            ('Stok Rata-rata', 'Stok saat ini'),
+            ('Lead Time (Hari)', 'Lama pengiriman dari supplier'),
+            ('Biaya Pesan (Rp)', 'Biaya admin/kirim per order'),
+            ('Biaya Simpan (% per tahun)', 'cth: 20 untuk 20%')
+          ] %}
+          <li class="d-flex align-items-start gap-2 mb-2">
+            <i class="bi bi-check2-circle text-success mt-1 flex-shrink-0"></i>
+            <div>
+              <span class="fw-700">{{ col[0] }}</span>
+              <span class="text-muted ms-1">— {{ col[1] }}</span>
+            </div>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+
+    <!-- Catatan penting -->
+    <div class="alert alert-info d-flex align-items-start gap-2 mb-3">
+      <i class="bi bi-info-circle-fill flex-shrink-0 mt-1"></i>
+      <div style="font-size:.83rem">
+        <strong>Pembaruan Data (Upsert):</strong> Obat yang namanya sudah ada di database <strong>TIDAK akan diduplikat</strong>, melainkan nilai Penjualan, Harga, dan Stoknya akan <strong>Diperbarui (Update)</strong> sesuai Excel terbaru!
+      </div>
+    </div>
+
+    <!-- Download Template -->
+    <a href="{{ url_for('obat.download_template') }}" class="btn-download-template w-100 justify-content-center">
+      <i class="bi bi-download"></i> Download Template Excel Kosong
+    </a>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const dropzone   = document.getElementById('dropzone');
+const fileInput  = document.getElementById('fileInput');
+const btnImport  = document.getElementById('btnImport');
+const fileDisplay = document.getElementById('fileNameDisplay');
+
+function handleFile(file) {
+  if (!file) return;
+  fileDisplay.textContent = '✓ File dipilih: ' + file.name;
+  fileDisplay.style.display = 'block';
+  btnImport.disabled = false;
+  btnImport.innerHTML = '<i class="bi bi-cloud-upload"></i> Import: ' + file.name;
+}
+
+dropzone.addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', () => handleFile(fileInput.files[0]));
+
+dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('drag-over'); });
+dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag-over'));
+dropzone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropzone.classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file) {
+    // Assign to file input via DataTransfer
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    fileInput.files = dt.files;
+    handleFile(file);
+  }
+});
+
+document.getElementById('formImport').addEventListener('submit', function() {
+  btnImport.disabled = true;
+  btnImport.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Sedang mengimpor data...';
+});
+</script>
+{% endblock %}

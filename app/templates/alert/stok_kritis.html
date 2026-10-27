@@ -1,0 +1,229 @@
+{% extends 'layout/base.html' %}
+{% block title %}Stok Kritis – Signa Medika{% endblock %}
+{% block page_name %}Stok Kritis{% endblock %}
+
+{% block head %}
+<style>
+  .kritis-header {
+    display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;
+  }
+  .kritis-icon {
+    width: 52px; height: 52px;
+    background: linear-gradient(135deg, #ef4444, #b91c1c);
+    border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.5rem; color: #fff;
+    box-shadow: 0 4px 20px rgba(239,68,68,0.35);
+    flex-shrink: 0;
+    animation: pulseRed 1.5s ease-in-out infinite alternate;
+  }
+  @keyframes pulseRed {
+    from { box-shadow: 0 4px 20px rgba(239,68,68,0.35); }
+    to   { box-shadow: 0 4px 30px rgba(239,68,68,0.65); }
+  }
+
+  .stat-strip { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
+  .stat-strip-item {
+    flex: 1; min-width: 140px;
+    background: #fff; border: 1px solid #e2e8f0; border-radius: 14px;
+    padding: 1rem 1.25rem;
+    display: flex; align-items: center; gap: .75rem;
+  }
+  .ss-icon {
+    width: 40px; height: 40px; border-radius: 11px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; font-size: 1.1rem;
+  }
+  .ss-val  { font-size: 1.5rem; font-weight: 800; line-height: 1.1; }
+  .ss-lbl  { font-size: .75rem; color: #64748b; margin-top: 2px; }
+
+  .kritis-table-wrap {
+    background: #fff; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden;
+  }
+  .kritis-table { width: 100%; border-collapse: collapse; font-size: .875rem; }
+  .kritis-table thead th {
+    background: #fff7ed; padding: .8rem 1.1rem;
+    text-align: left; font-size: .73rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .06em; color: #92400e;
+    border-bottom: 2px solid #fed7aa; white-space: nowrap;
+  }
+  .kritis-table tbody tr { border-bottom: 1px solid #f1f5f9; transition: background .12s; }
+  .kritis-table tbody tr:hover { background: #fff9f0; }
+  .kritis-table tbody tr:last-child { border-bottom: none; }
+  .kritis-table tbody td { padding: .85rem 1.1rem; vertical-align: middle; }
+
+  .nama-obat { font-weight: 700; color: #0f172a; }
+
+  .stok-bar-wrap { display: flex; align-items: center; gap: 8px; }
+  .stok-bar-bg {
+    flex: 1; height: 6px; background: #f1f5f9; border-radius: 6px; min-width: 80px;
+  }
+  .stok-bar-fill {
+    height: 100%; border-radius: 6px; background: #ef4444;
+    width: var(--fill-pct, 0%);
+    transition: width .4s;
+  }
+  .stok-val { font-weight: 700; font-size: .85rem; color: #ef4444; white-space: nowrap; }
+
+  .rop-val { font-weight: 600; color: #64748b; font-size: .85rem; }
+  .eoq-val { font-weight: 700; color: var(--primary); font-size: .85rem; }
+  .freq-val { font-size: .82rem; color: #64748b; }
+
+  .badge-fast   { background:#dcfce7;color:#15803d;border-radius:8px;padding:.25em .7em;font-size:.76rem;font-weight:700; }
+  .badge-medium { background:#fef9c3;color:#92400e;border-radius:8px;padding:.25em .7em;font-size:.76rem;font-weight:700; }
+  .badge-slow   { background:#fee2e2;color:#991b1b;border-radius:8px;padding:.25em .7em;font-size:.76rem;font-weight:700; }
+
+  .kritis-empty {
+    text-align: center; padding: 4rem 2rem; color: #64748b;
+  }
+  .kritis-empty .icon-wrap {
+    width: 80px; height: 80px; border-radius: 50%;
+    background: #dcfce7; margin: 0 auto 1.25rem;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 2.5rem;
+  }
+  .kritis-empty h5 { font-size: 1rem; font-weight: 700; color: #15803d; margin-bottom: .5rem; }
+  .kritis-empty p { font-size: .85rem; color: #64748b; margin: 0; }
+
+  .info-bar {
+    background: #fff7ed; border: 1px solid #fed7aa; border-radius: 12px;
+    padding: .85rem 1.1rem; font-size: .82rem; color: #92400e;
+    display: flex; align-items: center; gap: .6rem;
+    margin-bottom: 1.25rem;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-3 px-md-4 py-4">
+
+  <!-- Header -->
+  <div class="kritis-header">
+    <div class="kritis-icon"><i class="bi bi-exclamation-triangle-fill"></i></div>
+    <div>
+      <h1 class="mb-0" style="font-size:1.4rem;font-weight:800;color:#0f172a;">Stok Kritis</h1>
+      <p class="mb-0" style="color:#64748b;font-size:0.85rem;">Obat dengan stok &le; Reorder Point — perlu segera dipesan</p>
+    </div>
+    <div class="ms-auto d-flex gap-2 align-items-center">
+      {% if rows %}
+      <span class="badge" style="background:#fee2e2;color:#991b1b;font-size:.85rem;padding:.45em .9em;border-radius:8px;font-weight:700;">
+        {{ rows|length }} Obat Kritis
+      </span>
+      {% endif %}
+      <button onclick="location.reload()" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-arrow-clockwise"></i> Refresh
+      </button>
+    </div>
+  </div>
+
+  <!-- Stat Strip -->
+  {% if rows %}
+  <div class="stat-strip">
+    <div class="stat-strip-item">
+      <div class="ss-icon" style="background:#fee2e2;color:#ef4444;"><i class="bi bi-exclamation-circle-fill"></i></div>
+      <div>
+        <div class="ss-val" style="color:#ef4444;">{{ rows|length }}</div>
+        <div class="ss-lbl">Total Obat Kritis</div>
+      </div>
+    </div>
+    <div class="stat-strip-item">
+      <div class="ss-icon" style="background:#dcfce7;color:#16a34a;"><i class="bi bi-graph-up"></i></div>
+      <div>
+        <div class="ss-val" style="color:#16a34a;">{{ rows|selectattr('cluster_label','equalto','Fast Moving')|list|length }}</div>
+        <div class="ss-lbl">Fast Moving Kritis</div>
+      </div>
+    </div>
+    <div class="stat-strip-item">
+      <div class="ss-icon" style="background:#fef9c3;color:#d97706;"><i class="bi bi-dash-circle"></i></div>
+      <div>
+        <div class="ss-val" style="color:#d97706;">{{ rows|selectattr('cluster_label','equalto','Medium Moving')|list|length }}</div>
+        <div class="ss-lbl">Medium Moving Kritis</div>
+      </div>
+    </div>
+    <div class="stat-strip-item">
+      <div class="ss-icon" style="background:#fee2e2;color:#dc2626;"><i class="bi bi-arrow-down-circle"></i></div>
+      <div>
+        <div class="ss-val" style="color:#dc2626;">{{ rows|selectattr('cluster_label','equalto','Slow Moving')|list|length }}</div>
+        <div class="ss-lbl">Slow Moving Kritis</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="info-bar">
+    <i class="bi bi-info-circle-fill"></i>
+    <span>Data diperbarui secara <strong>real-time</strong> dari database. Klik <strong>Refresh</strong> untuk memeriksa ulang. Nilai EOQ = jumlah unit optimal yang disarankan per pesanan.</span>
+  </div>
+  {% endif %}
+
+  <!-- Table -->
+  <div class="kritis-table-wrap">
+    {% if rows %}
+    <div class="table-responsive">
+      <table class="kritis-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Nama Obat</th>
+            <th>Kategori</th>
+            <th>Stok Saat Ini</th>
+            <th>ROP</th>
+            <th>EOQ (Saran Pesan)</th>
+            <th>Kebutuhan/Minggu</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in rows %}
+          {% set pct = [((r.stok_rata_rata / r.reorder_point) * 100)|int, 100]|min if r.reorder_point > 0 else 0 %}
+          {% set fill_width = pct ~ '%' %}
+          <tr>
+            <td style="color:#94a3b8;font-size:.8rem;">{{ loop.index }}</td>
+            <td>
+              <div class="nama-obat">{{ r.nama_obat }}</div>
+              <div style="font-size:.74rem;color:#94a3b8;">{{ r.satuan }}</div>
+            </td>
+            <td>
+              {% if 'Fast' in r.cluster_label %}
+                <span class="badge-fast"><i class="bi bi-lightning-fill me-1"></i>{{ r.cluster_label }}</span>
+              {% elif 'Medium' in r.cluster_label %}
+                <span class="badge-medium"><i class="bi bi-dash-circle me-1"></i>{{ r.cluster_label }}</span>
+              {% else %}
+                <span class="badge-slow"><i class="bi bi-arrow-down-circle me-1"></i>{{ r.cluster_label }}</span>
+              {% endif %}
+            </td>
+            <td>
+              <div class="stok-bar-wrap">
+                <div class="stok-bar-bg">
+                  <div class="stok-bar-fill" style="--fill-pct: {{ fill_width }};"></div>
+                </div>
+                <span class="stok-val">{{ r.stok_rata_rata }}</span>
+              </div>
+            </td>
+            <td><span class="rop-val">{{ r.reorder_point|int }}</span></td>
+            <td>
+              <span class="eoq-val">
+                <i class="bi bi-bag-plus me-1"></i>{{ r.eoq|int }} {{ r.satuan }}
+              </span>
+            </td>
+            <td><span class="freq-val">{{ r.kebutuhan_mingguan|int }} {{ r.satuan }}</span></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {% else %}
+    <div class="kritis-empty">
+      <div class="icon-wrap">✅</div>
+      <h5>Semua Stok Aman!</h5>
+      <p>Tidak ada obat dengan stok di bawah Reorder Point saat ini.</p>
+      {% if not rows %}
+      <p class="mt-2" style="font-size:.78rem;color:#94a3b8;">
+        Pastikan proses clustering &amp; EOQ sudah dijalankan agar data ROP tersedia.
+        <a href="{{ url_for('clustering.proses') }}" style="color:var(--primary);">Jalankan Clustering →</a>
+      </p>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}

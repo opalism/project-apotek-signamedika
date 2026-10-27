@@ -1,0 +1,272 @@
+{% extends 'layout/base.html' %}
+{% block title %}Rekomendasi Pengadaan EOQ — Apotek Signa Medika{% endblock %}
+{% block page_name %}Rekomendasi Pengadaan{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-4">
+  <div>
+    <h1 class="page-title"><i class="bi bi-box-seam me-2 text-primary"></i>Rekomendasi Pengadaan Obat</h1>
+    <p class="page-subtitle">Berapa unit harus dipesan dan kapan harus memesan ulang — dihitung otomatis menggunakan metode EOQ</p>
+  </div>
+  <a href="{{ url_for('laporan.preview') }}" class="btn btn-outline-primary btn-sm">
+    <i class="bi bi-file-earmark-pdf"></i> Cetak Laporan
+  </a>
+</div>
+
+<!-- Penjelasan EOQ dan ROP -->
+<div class="row g-3 mb-4 animate-in">
+  <div class="col-md-4">
+    <div class="metric-explain">
+      <div class="metric-icon" style="background:#ccfbf1">
+        <i class="bi bi-calendar-week" style="color:#0d9488"></i>
+      </div>
+      <div>
+        <h6>Kebutuhan 1 Minggu</h6>
+        <p>Estimasi obat habis dalam seminggu. <strong>Gunakan angka ini</strong> sebagai acuan pemesanan rutin.</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="metric-explain">
+      <div class="metric-icon" style="background:#fff7ed">
+        <i class="bi bi-box-arrow-in-down" style="color:#d97706"></i>
+      </div>
+      <div>
+        <h6>ROP (Batas Stok Pesan)</h6>
+        <p>Angka alarm! Jika stok menyentuh angka ini atau lebih rendah, <strong>segera lakukan pemesanan</strong>.</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="metric-explain">
+      <div class="metric-icon" style="background:#d1fae5">
+        <i class="bi bi-calculator" style="color:#059669"></i>
+      </div>
+      <div>
+        <h6>EOQ (Optimal Teoritis)</h6>
+        <p>Referensi pesanan paling hemat biaya menggunakan rumus model EOQ dasar.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card-m animate-in">
+  <div class="card-m-header">
+    <div class="d-flex align-items-center gap-2">
+      <span class="card-m-title">Tabel Rekomendasi EOQ</span>
+      <span class="badge bg-primary bg-opacity-10 text-primary fw-700" style="font-size:.78rem;border-radius:99px;padding:.2em .7em" id="totalBadge">
+        {{ hasil | length }} obat
+      </span>
+    </div>
+    <div class="filter-toolbar">
+      <span class="text-muted" style="font-size:.8rem"><i class="bi bi-funnel-fill"></i> Filter:</span>
+      <select id="filterCluster">
+        <option value="all">Semua Kelompok</option>
+        <option value="Fast Moving">Fast Moving</option>
+        <option value="Medium Moving">Medium Moving</option>
+        <option value="Slow Moving">Slow Moving</option>
+      </select>
+      <select id="filterStatus">
+        <option value="all">Semua Status</option>
+        <option value="kritis">Stok Kritis</option>
+        <option value="aman">Stok Aman</option>
+      </select>
+      <div class="search-box ms-2">
+        <i class="bi bi-search"></i>
+        <input type="text" id="searchEoq" class="form-control form-control-sm"
+               placeholder="Cari nama obat..." style="max-width:180px">
+      </div>
+    </div>
+  </div>
+  <div class="card-m-body p-0">
+    <div class="table-responsive">
+      <table class="table table-modern mb-0" id="tblEoq">
+        <thead>
+          <tr>
+            <th style="width:45px">No</th>
+            <th class="th-sortable" data-sort="nama" data-type="text">Nama Obat <i class="bi bi-arrow-down-up sort-icon"></i></th>
+            <th>Supplier</th>
+            <th class="text-center">Kelompok</th>
+            <th class="text-end th-sortable" data-sort="stok" data-type="num">Stok <i class="bi bi-arrow-down-up sort-icon"></i></th>
+            <th class="text-end" style="background:#f0fdfa">
+              <span class="th-explain">
+                Kebut. 1 Mgg
+                <span class="help-hint" data-tooltip="Kebutuhan mingguan (D_minggu = (Terjual/Bln × 12) ÷ 52). Acuan belanja rutin mingguan apotek.">?</span>
+              </span>
+            </th>
+            <th class="text-end text-muted">ROP</th>
+            <th class="text-end text-muted">EOQ</th>
+            <th class="text-center">Status Stok</th>
+          </tr>
+        </thead>
+        <tbody id="tbodyEoq">
+          {% for r in hasil %}
+          {% set stok = r.stok_rata_rata or 0 %}
+          {% set rop  = r.reorder_point | int %}
+          {% set keb_minggu = r.kebutuhan_mingguan | int %}
+          {% set status_kritis = 'kritis' if stok <= rop else 'aman' %}
+          <tr data-nama="{{ r.nama_obat }}" data-cluster="{{ r.cluster_label }}" 
+              data-status="{{ status_kritis }}" data-stok="{{ stok }}"
+              {% if stok <= rop %}class="table-danger-row" style="background:#fff5f5"{% endif %}>
+            <td class="text-muted row-num">{{ loop.index }}</td>
+            <td>
+              <span class="fw-600">{{ r.nama_obat }}</span>
+              {% if stok <= rop %}
+              <br><span style="font-size:.72rem;color:#dc2626"><i class="bi bi-exclamation-triangle-fill me-1"></i>Perlu dipesan!</span>
+              {% endif %}
+            </td>
+            <td><span class="badge bg-secondary bg-opacity-10 text-dark fw-normal" style="font-size:.78rem">{{ r.supplier or '-' }}</span></td>
+            <td class="text-center">
+              <span class="{% if 'Fast' in r.cluster_label %}badge-fast{% elif 'Medium' in r.cluster_label %}badge-medium{% else %}badge-slow{% endif %}">
+                {{ r.cluster_label }}
+              </span>
+            </td>
+            <td class="text-end fw-600 {% if stok <= rop %}text-danger{% endif %}">{{ stok }}</td>
+            <td class="text-end">
+              <strong class="text-primary">{{ keb_minggu }}</strong>
+              <span class="text-muted" style="font-size:.70rem"> unit</span>
+            </td>
+            <td class="text-end text-muted">{{ rop }}</td>
+            <td class="text-end text-muted">{{ r.eoq | int }}</td>
+            <td class="text-center">
+              {% if stok <= rop %}
+                <span class="badge-kritis"><i class="bi bi-exclamation-triangle-fill"></i> Kritis</span>
+              {% else %}
+                <span class="badge-aman"><i class="bi bi-check-circle-fill"></i> Aman</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <!-- Pagination -->
+  <div class="pagination-controls" id="paginationControls">
+    <div class="d-flex align-items-center gap-2">
+      <span>Tampilkan</span>
+      <select id="perPage">
+        <option value="10">10</option>
+        <option value="25" selected>25</option>
+        <option value="50">50</option>
+        <option value="999">Semua</option>
+      </select>
+      <span>per halaman</span>
+      <span class="pagination-info" id="paginationInfo"></span>
+    </div>
+    <div class="pagination-btns" id="paginationBtns"></div>
+  </div>
+</div>
+
+<!-- Keterangan bawah -->
+<div class="row g-3 mt-3 animate-in">
+  <div class="col-md-9">
+    <div class="info-box-sm">
+      <strong><i class="bi bi-calculator me-1"></i>Cara Menghitung (Weekly EOQ Model):</strong><br>
+      <strong>D<sub>minggu</sub></strong> = Terjual/Bln ÷ 4 &nbsp;|&nbsp;
+      <strong>H<sub>minggu</sub></strong> = (Biaya Simpan% × Harga Beli) ÷ 48 &nbsp;|&nbsp;
+      <strong>EOQ<sub>minggu</sub></strong> = √((2 × D<sub>minggu</sub> × Biaya Pesan) ÷ H<sub>minggu</sub>) &nbsp;|&nbsp;
+      <strong>ROP</strong> = ceil(D<sub>minggu</sub> × (Lead Time ÷ 7))
+    </div>
+  </div>
+  <div class="col-md-3 d-flex align-items-center">
+    <a href="{{ url_for('laporan.preview') }}" class="btn btn-primary w-100 h-100 d-flex justify-content-center align-items-center py-0">
+      <i class="bi bi-file-earmark-pdf me-2"></i> Cetak Laporan
+    </a>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// ---- Filter & Pagination ----
+const allRows = Array.from(document.querySelectorAll('#tbodyEoq tr'));
+const perPageSelect = document.getElementById('perPage');
+const paginationInfo = document.getElementById('paginationInfo');
+const paginationBtns = document.getElementById('paginationBtns');
+const searchInput = document.getElementById('searchEoq');
+const filterCluster = document.getElementById('filterCluster');
+const filterStatus = document.getElementById('filterStatus');
+const totalBadge = document.getElementById('totalBadge');
+let currentPage = 1;
+
+function getFilteredRows() {
+  const q = searchInput.value.toLowerCase();
+  const c = filterCluster.value;
+  const s = filterStatus.value;
+  return allRows.filter(row => {
+    const matchQ = row.textContent.toLowerCase().includes(q);
+    const matchC = (c === 'all' || row.dataset.cluster === c);
+    const matchS = (s === 'all' || row.dataset.status === s);
+    return matchQ && matchC && matchS;
+  });
+}
+
+function renderPage() {
+  const filtered = getFilteredRows();
+  const perPage = parseInt(perPageSelect.value);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
+  if (currentPage > totalPages) currentPage = totalPages;
+
+  // Hide all, show current page
+  allRows.forEach(r => r.style.display = 'none');
+  const start = (currentPage - 1) * perPage;
+  const end = start + perPage;
+  filtered.slice(start, end).forEach((r, i) => {
+    r.style.display = '';
+    r.querySelector('.row-num').textContent = start + i + 1;
+  });
+
+  // Info text
+  const showStart = filtered.length === 0 ? 0 : start + 1;
+  const showEnd = Math.min(end, filtered.length);
+  paginationInfo.textContent = `Menampilkan ${showStart}–${showEnd} dari ${filtered.length} obat`;
+  totalBadge.textContent = `${filtered.length} obat`;
+
+  // Buttons
+  let btns = '';
+  btns += `<button ${currentPage <= 1 ? 'disabled' : ''} onclick="goPage(${currentPage-1})"><i class="bi bi-chevron-left"></i></button>`;
+  const maxBtns = 5;
+  let btnStart = Math.max(1, currentPage - Math.floor(maxBtns / 2));
+  let btnEnd = Math.min(totalPages, btnStart + maxBtns - 1);
+  if (btnEnd - btnStart < maxBtns - 1) btnStart = Math.max(1, btnEnd - maxBtns + 1);
+  for (let i = btnStart; i <= btnEnd; i++) {
+    btns += `<button class="${i === currentPage ? 'pg-active' : ''}" onclick="goPage(${i})">${i}</button>`;
+  }
+  btns += `<button ${currentPage >= totalPages ? 'disabled' : ''} onclick="goPage(${currentPage+1})"><i class="bi bi-chevron-right"></i></button>`;
+  paginationBtns.innerHTML = btns;
+}
+
+window.goPage = function(p) { currentPage = p; renderPage(); };
+
+perPageSelect.addEventListener('change', () => { currentPage = 1; renderPage(); });
+searchInput.addEventListener('input', () => { currentPage = 1; renderPage(); });
+filterCluster.addEventListener('change', () => { currentPage = 1; renderPage(); });
+filterStatus.addEventListener('change', () => { currentPage = 1; renderPage(); });
+
+// ---- Sorting ----
+document.querySelectorAll('.th-sortable').forEach(th => {
+  th.addEventListener('click', function() {
+    const key = this.dataset.sort;
+    const isNum = this.dataset.type === 'num';
+    const isAsc = !this.classList.contains('sort-asc');
+    document.querySelectorAll('.th-sortable').forEach(t => t.classList.remove('sort-asc', 'sort-desc'));
+    this.classList.add(isAsc ? 'sort-asc' : 'sort-desc');
+
+    allRows.sort((a, b) => {
+      let va = a.dataset[key], vb = b.dataset[key];
+      if (isNum) { va = parseFloat(va) || 0; vb = parseFloat(vb) || 0; }
+      else { va = va.toLowerCase(); vb = vb.toLowerCase(); }
+      return isAsc ? (va > vb ? 1 : -1) : (va < vb ? 1 : -1);
+    });
+
+    const tbody = document.getElementById('tbodyEoq');
+    allRows.forEach(r => tbody.appendChild(r));
+    currentPage = 1;
+    renderPage();
+  });
+});
+
+renderPage();
+</script>
+{% endblock %}

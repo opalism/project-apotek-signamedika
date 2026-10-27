@@ -1,0 +1,123 @@
+{% extends 'layout/base.html' %}
+{% block title %}Laporan — Apotek Signa Medika{% endblock %}
+{% block page_name %}Laporan PDF{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4">
+  <div>
+    <h1 class="page-title">Laporan Analitik Pengadaan Obat</h1>
+    <p class="page-subtitle">Preview laporan sebelum diunduh sebagai PDF</p>
+  </div>
+  <a href="{{ url_for('laporan.download_pdf') }}" class="btn btn-primary">
+    <i class="bi bi-download me-1"></i>Unduh PDF
+  </a>
+</div>
+
+<!-- Info Proses -->
+{% if riwayat %}
+<div class="row g-3 mb-4 animate-in">
+  <!-- Kolom Kiri: Info Proses -->
+  <div class="col-md-4">
+    <div class="card-m h-100">
+      <div class="card-m-body d-flex flex-column justify-content-center">
+        <div class="text-muted small mb-1">Terakhir Diperbarui</div>
+        <div class="fw-700 text-primary mb-3">{{ riwayat.tanggal_proses.strftime('%d %b %Y %H:%M') }}</div>
+        
+        <div class="d-flex justify-content-between mb-2 pb-2 border-bottom">
+          <span class="text-muted small">Kelompok (K)</span>
+          <span class="fw-700">{{ riwayat.jumlah_cluster }}</span>
+        </div>
+        <div class="d-flex justify-content-between mb-2 pb-2 border-bottom">
+          <span class="text-muted small">Davies-Bouldin</span>
+          <span class="fw-700">{{ riwayat.dbi_score }}</span>
+        </div>
+        <div class="d-flex justify-content-between">
+          <span class="text-muted small">Silhouette</span>
+          <span class="fw-700">{{ riwayat.silhouette_score }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Kolom Kanan: Summary Stats -->
+  <div class="col-md-8">
+    <div class="summary-stats h-100 mb-0">
+      <div class="summary-stat-item">
+        <div class="ss-value text-dark">{{ summary.total }}</div>
+        <div class="ss-label"><i class="bi bi-capsule me-1 text-muted"></i>Total Obat</div>
+      </div>
+      <div class="summary-stat-item" style="border-bottom: 3px solid #16a34a">
+        <div class="ss-value" style="color:#16a34a">{{ summary.fast }}</div>
+        <div class="ss-label text-success"><i class="bi bi-arrow-up-circle me-1"></i>Fast</div>
+      </div>
+      <div class="summary-stat-item" style="border-bottom: 3px solid #d97706">
+        <div class="ss-value" style="color:#d97706">{{ summary.medium }}</div>
+        <div class="ss-label text-warning"><i class="bi bi-dash-circle me-1"></i>Medium</div>
+      </div>
+      <div class="summary-stat-item" style="border-bottom: 3px solid #dc2626">
+        <div class="ss-value" style="color:#dc2626">{{ summary.slow }}</div>
+        <div class="ss-label text-danger"><i class="bi bi-arrow-down-circle me-1"></i>Slow</div>
+      </div>
+      <div class="summary-stat-item" style="background:#fff5f5;border-color:#fca5a5">
+        <div class="ss-value" style="color:#dc2626">{{ summary.kritis }}</div>
+        <div class="ss-label text-danger"><i class="bi bi-exclamation-triangle-fill me-1"></i>Stok Kritis</div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- Tabel Laporan -->
+<div class="card-m">
+  <div class="card-m-header">
+    <span class="card-m-title">
+      <i class="bi bi-table me-2 text-primary"></i>
+      Rekapitulasi Hasil Clustering & EOQ — {{ tanggal }}
+    </span>
+  </div>
+  <div class="card-m-body p-0">
+    <div class="table-responsive">
+      <table class="table table-modern mb-0">
+        <thead>
+          <tr>
+            <th>No</th>
+            <th>Nama Obat</th>
+            <th>Supplier</th>
+            <th>Kategori</th>
+            <th>Satuan</th>
+            <th class="text-center">Cluster</th>
+            <th class="text-end">Terjual/Bln</th>
+            <th class="text-end">Stok</th>
+            <th class="text-end">ROP</th>
+            <th class="text-end">Kebut. 1 Mgg</th>
+            <th class="text-end">EOQ Teoritis</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in hasil %}
+          <tr>
+            <td class="text-muted">{{ loop.index }}</td>
+            <td class="fw-600">{{ r.nama_obat }}</td>
+            <td><span class="badge bg-secondary bg-opacity-10 text-dark fw-normal" style="font-size:.78rem">{{ r.supplier or '-' }}</span></td>
+            <td>{{ r.kategori or '-' }}</td>
+            <td>{{ r.satuan or '-' }}</td>
+            <td class="text-center">
+              <span class="{% if 'Fast' in r.cluster_label %}badge-fast{% elif 'Medium' in r.cluster_label %}badge-medium{% else %}badge-slow{% endif %}">
+                {{ r.cluster_label }}
+              </span>
+            </td>
+            <td class="text-end">{{ r.jumlah_terjual_per_bulan or 0 }}</td>
+            <td class="text-end">{{ r.stok_rata_rata or 0 }}</td>
+            <td class="text-end">{{ r.reorder_point | int }}</td>
+            <td class="text-end">
+              <strong>{{ r.kebutuhan_mingguan | int }}</strong>
+            </td>
+            <td class="text-end">{{ r.eoq | int }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

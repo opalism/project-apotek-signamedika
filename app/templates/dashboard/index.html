@@ -1,0 +1,363 @@
+{% extends 'layout/base.html' %}
+{% block title %}Dashboard — Apotek Signa Medika{% endblock %}
+{% block page_name %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-4">
+  <div>
+    <h1 class="page-title"><i class="bi bi-speedometer2 me-2 text-primary"></i>Dashboard</h1>
+    <p class="page-subtitle">Ringkasan data obat dan hasil analisis pengadaan Apotek Signa Medika</p>
+  </div>
+  {% if not sudah_clustering %}
+  <a href="{{ url_for('clustering.proses') }}" class="btn btn-primary">
+    <i class="bi bi-play-circle"></i> Jalankan Clustering
+  </a>
+  {% endif %}
+</div>
+
+<!-- Panduan Langkah-by-Langkah (Wizard) -->
+{% if not sudah_clustering %}
+<div class="wizard-banner mb-4 animate-in">
+  <i class="bi bi-lightbulb mb-2" style="font-size:1.5rem;opacity:.8"></i>
+  <h3>Selamat Datang! Ikuti 3 langkah mudah ini untuk mulai ✨</h3>
+  <p>Sistem ini membantu Anda mengetahui obat mana yang perlu segera dipesan dan berapa banyak yang harus dibeli secara efisien.</p>
+  <div class="wizard-steps">
+    <div class="wizard-step {% if total_obat > 0 %}done{% else %}active-step{% endif %}">
+      {% if total_obat > 0 %}<i class="bi bi-check-circle-fill"></i>{% else %}<i class="bi bi-1-circle-fill"></i>{% endif %}
+      Langkah 1: Masukkan Data Obat
+    </div>
+    <div class="wizard-step {% if total_obat > 0 %}active-step{% endif %}">
+      <i class="bi bi-2-circle-fill"></i> Langkah 2: Jalankan Clustering
+    </div>
+    <div class="wizard-step">
+      <i class="bi bi-3-circle-fill"></i> Langkah 3: Lihat Rekomendasi Pengadaan
+    </div>
+  </div>
+</div>
+
+{% if total_obat == 0 %}
+<div class="row g-3 mb-4">
+  <div class="col-md-6">
+    <div class="card-m h-100 animate-in">
+      <div class="card-m-body text-center py-4">
+        <i class="bi bi-capsule fs-1 text-primary mb-3 d-block" style="opacity:.5"></i>
+        <h5 class="fw-700 mb-2" style="font-size:.95rem">Belum Ada Data Obat</h5>
+        <p class="text-muted mb-3" style="font-size:.84rem">Mulai dengan menambah data obat apotek Anda satu per satu, atau impor sekaligus dari file Excel.</p>
+        <div class="d-flex gap-2 justify-content-center flex-wrap">
+          <a href="{{ url_for('obat.tambah') }}" class="btn btn-primary btn-sm">
+            <i class="bi bi-plus-lg"></i> Tambah Obat Manual
+          </a>
+          <a href="{{ url_for('obat.import_excel') }}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-upload"></i> Import dari Excel
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card-m h-100 animate-in">
+      <div class="card-m-header"><span class="card-m-title"><i class="bi bi-book me-2 text-primary"></i>Panduan Singkat</span></div>
+      <div class="card-m-body">
+        <div class="d-flex flex-column gap-3">
+          <div class="d-flex align-items-start gap-3">
+            <div class="stat-icon" style="background:var(--primary-light);width:36px;height:36px;font-size:1rem;border-radius:10px;flex-shrink:0">
+              <i class="bi bi-capsule" style="color:var(--primary)"></i>
+            </div>
+            <div>
+              <div class="fw-700" style="font-size:.85rem">Data Obat</div>
+              <div class="text-muted" style="font-size:.78rem">Masukkan nama, harga, stok, dan data penjualan tiap obat.</div>
+            </div>
+          </div>
+          <div class="d-flex align-items-start gap-3">
+            <div class="stat-icon" style="background:var(--success-light);width:36px;height:36px;font-size:1rem;border-radius:10px;flex-shrink:0">
+              <i class="bi bi-diagram-3" style="color:var(--success)"></i>
+            </div>
+            <div>
+              <div class="fw-700" style="font-size:.85rem">Clustering Otomatis</div>
+              <div class="text-muted" style="font-size:.78rem">Sistem akan mengelompokkan obat menjadi Fast, Medium, dan Slow Moving.</div>
+            </div>
+          </div>
+          <div class="d-flex align-items-start gap-3">
+            <div class="stat-icon" style="background:var(--warning-light);width:36px;height:36px;font-size:1rem;border-radius:10px;flex-shrink:0">
+              <i class="bi bi-box-seam" style="color:var(--warning)"></i>
+            </div>
+            <div>
+              <div class="fw-700" style="font-size:.85rem">Rekomendasi EOQ</div>
+              <div class="text-muted" style="font-size:.78rem">Dapatkan berapa unit harus dipesan dan kapan harus memesan ulang.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endif %}
+
+<!-- Stok Kritis Alert -->
+{% if stok_kritis > 0 %}
+<div class="alert alert-danger d-flex align-items-start gap-2 mb-4 animate-in" role="alert">
+  <i class="bi bi-exclamation-triangle-fill fs-5 flex-shrink-0 mt-1"></i>
+  <div>
+    <strong>⚠ Perhatian! Stok Hampir Habis!</strong>
+    <br>Terdapat <strong>{{ stok_kritis }} obat</strong> dengan stok di bawah batas minimum pemesanan ulang
+    <span class="help-hint" data-tooltip="Reorder Point (ROP) = batas minimum stok. Jika stok sudah di bawah angka ini, obat perlu segera dipesan agar tidak kehabisan.">?</span>.
+    Segera lakukan pemesanan!
+    <a href="{{ url_for('eoq.rekomendasi') }}" class="alert-link ms-1">Lihat detail obat yang kritis &rarr;</a>
+  </div>
+</div>
+{% endif %}
+
+<!-- Stat Cards -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-lg-3">
+    <div class="stat-card animate-in">
+      <div class="d-flex align-items-start justify-content-between">
+        <div>
+          <div class="stat-number">{{ total_obat }}</div>
+          <div class="stat-label">Total Obat</div>
+          <div class="stat-hint">Seluruh obat yang terdaftar di apotek</div>
+        </div>
+        <div class="stat-icon" style="background:var(--primary-light)">
+          <i class="bi bi-capsule" style="color:var(--primary)"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="stat-card animate-in">
+      <div class="d-flex align-items-start justify-content-between">
+        <div>
+          <div class="stat-number" style="color:#16a34a">{{ fast }}</div>
+          <div class="stat-label">
+            Fast Moving
+            <span class="help-hint" data-tooltip="Obat LARIS — cepat habis terjual. Perlu sering di-restock agar tidak kekosongan stok.">?</span>
+          </div>
+          <div class="stat-hint">Obat paling laris, sering dipesan</div>
+        </div>
+        <div class="stat-icon" style="background:var(--success-light)">
+          <i class="bi bi-arrow-up-circle" style="color:var(--success)"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="stat-card animate-in">
+      <div class="d-flex align-items-start justify-content-between">
+        <div>
+          <div class="stat-number" style="color:#d97706">{{ medium }}</div>
+          <div class="stat-label">
+            Medium Moving
+            <span class="help-hint" data-tooltip="Obat SEDANG — penjualan tidak terlalu cepat atau lambat. Tetap perlu dipantau stoknya secara rutin.">?</span>
+          </div>
+          <div class="stat-hint">Obat penjualan sedang</div>
+        </div>
+        <div class="stat-icon" style="background:var(--warning-light)">
+          <i class="bi bi-dash-circle" style="color:var(--warning)"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="stat-card animate-in">
+      <div class="d-flex align-items-start justify-content-between">
+        <div>
+          <div class="stat-number" style="color:#dc2626">{{ slow }}</div>
+          <div class="stat-label">
+            Slow Moving
+            <span class="help-hint" data-tooltip="Obat JARANG TERJUAL — jarang laku. Cukup pesan sedikit agar modal tidak tertahan di stok.">?</span>
+          </div>
+          <div class="stat-hint">Obat jarang terjual, pesan sedikit</div>
+        </div>
+        <div class="stat-icon" style="background:var(--danger-light)">
+          <i class="bi bi-arrow-down-circle" style="color:var(--danger)"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Stok Kritis Stat + Quick Actions -->
+{% if sudah_clustering %}
+<div class="row g-3 mb-4">
+  <div class="col-md-4">
+    {% if stok_kritis > 0 %}
+    <div class="stat-card animate-in border-danger" style="border-color: #fca5a5; background: #fff5f5;">
+      <div class="d-flex align-items-start justify-content-between">
+        <div>
+          <div class="stat-number" style="color: #dc2626;">{{ stok_kritis }}</div>
+          <div class="stat-label">
+            <i class="bi bi-exclamation-triangle-fill text-danger me-1"></i>
+            Obat Stok Kritis
+          </div>
+          <div class="stat-hint">Stok di bawah batas ROP — segera pesan!</div>
+        </div>
+        <div class="stat-icon" style="background: var(--danger-light);">
+          <i class="bi bi-exclamation-triangle" style="color: var(--danger);"></i>
+        </div>
+      </div>
+    </div>
+    {% else %}
+    <div class="stat-card animate-in">
+      <div class="d-flex align-items-start justify-content-between">
+        <div>
+          <div class="stat-number" style="color: #16a34a;">{{ stok_kritis }}</div>
+          <div class="stat-label">
+            <i class="bi bi-check-circle-fill text-success me-1"></i>
+            Obat Stok Kritis
+          </div>
+          <div class="stat-hint">Semua stok obat dalam kondisi aman</div>
+        </div>
+        <div class="stat-icon" style="background: var(--success-light);">
+          <i class="bi bi-shield-check" style="color: var(--success);"></i>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+  <div class="col-md-8">
+    <div class="card-m h-100 animate-in">
+      <div class="card-m-body d-flex align-items-center">
+        <div class="d-flex gap-2 flex-wrap w-100 justify-content-center">
+          <a href="{{ url_for('obat.tambah') }}" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-plus-lg"></i> Tambah Obat
+          </a>
+          <a href="{{ url_for('obat.import_excel') }}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-upload"></i> Import Excel
+          </a>
+          <a href="{{ url_for('clustering.proses') }}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-repeat"></i> Clustering Ulang
+          </a>
+          <a href="{{ url_for('eoq.rekomendasi') }}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-box-seam"></i> Rekomendasi EOQ
+          </a>
+          <a href="{{ url_for('laporan.preview') }}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-file-earmark-pdf"></i> Cetak Laporan
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- Charts -->
+<div class="row g-3">
+  <div class="col-lg-5">
+    <div class="card-m h-100 animate-in">
+      <div class="card-m-header">
+        <span class="card-m-title">
+          <i class="bi bi-pie-chart me-2 text-primary"></i>Distribusi Kategori Obat
+          <span class="help-hint" data-tooltip="Proporsi obat di setiap kategori (Fast/Medium/Slow Moving) hasil pengelompokan otomatis K-Means.">?</span>
+        </span>
+      </div>
+      <div class="card-m-body d-flex align-items-center justify-content-center">
+        {% if sudah_clustering %}
+        <div class="chart-wrap" style="width:100%;max-width:290px">
+          <canvas id="chartCluster"></canvas>
+        </div>
+        {% else %}
+        <div class="empty-state">
+          <i class="bi bi-diagram-3"></i>
+          <h5>Belum Ada Data Clustering</h5>
+          <p>Jalankan proses clustering terlebih dahulu untuk melihat distribusi kategori obat.</p>
+          <a href="{{ url_for('clustering.proses') }}" class="btn btn-primary btn-sm">
+            <i class="bi bi-play-circle"></i> Jalankan Clustering
+          </a>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-7">
+    <div class="card-m h-100 animate-in">
+      <div class="card-m-header">
+        <span class="card-m-title">
+          <i class="bi bi-bar-chart me-2 text-primary"></i>Top 10 Obat Terlaris
+          <span class="help-hint" data-tooltip="10 obat dengan jumlah terjual per bulan paling tinggi — obat ini paling dibutuhkan pasien.">?</span>
+        </span>
+      </div>
+      <div class="card-m-body">
+        <div class="chart-wrap">
+          <canvas id="chartTop"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Keterangan Istilah -->
+<div class="info-box-sm mt-4 animate-in">
+  <strong><i class="bi bi-book me-1"></i>Keterangan Istilah:</strong><br>
+  <strong>Clustering</strong> = pengelompokan obat secara otomatis oleh sistem berdasarkan pola penjualan.&nbsp;
+  <strong>Fast Moving</strong> = obat laris cepat habis.&nbsp;
+  <strong>Medium Moving</strong> = obat penjualan sedang.&nbsp;
+  <strong>Slow Moving</strong> = obat jarang terjual.&nbsp;
+  <strong>EOQ</strong> = jumlah pemesanan paling efisien (hemat biaya).&nbsp;
+  <strong>ROP</strong> = batas stok minimum — jika stok menyentuh angka ini, segera pesan ulang.
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script type="application/json" id="data-cluster">{{ (chart_cluster if sudah_clustering else 'null') | safe }}</script>
+<script type="application/json" id="data-top">{{ chart_top | safe }}</script>
+
+<script>
+const PALETTE = {
+  fast:   '#10b981', medium: '#f59e0b', slow: '#f43f5e',
+  primary: '#06b6d4', primaryLight: 'rgba(6, 182, 212, 0.2)'
+};
+
+const clusterData = JSON.parse(document.getElementById('data-cluster').textContent);
+if (clusterData) {
+  const clusterColors = clusterData.labels.map(l => {
+    if (l.includes('Fast'))   return PALETTE.fast;
+    if (l.includes('Medium')) return PALETTE.medium;
+    return PALETTE.slow;
+  });
+  new Chart(document.getElementById('chartCluster'), {
+    type: 'doughnut',
+    data: {
+      labels: clusterData.labels,
+      datasets: [{ data: clusterData.data, backgroundColor: clusterColors, borderWidth: 0, hoverOffset: 12 }]
+    },
+    options: {
+      plugins: {
+        legend: { position: 'bottom', labels: { font: { family: 'Plus Jakarta Sans', size: 13, weight: '700' }, padding: 16 } },
+        tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.raw} obat` } }
+      },
+      cutout: '68%'
+    }
+  });
+}
+
+const topData = JSON.parse(document.getElementById('data-top').textContent);
+if (topData && topData.labels.length > 0) {
+  new Chart(document.getElementById('chartTop'), {
+    type: 'bar',
+    data: {
+      labels: topData.labels,
+      datasets: [{
+        label: 'Terjual/Bulan',
+        data: topData.data,
+        backgroundColor: 'rgba(6, 182, 212, 0.25)',
+        borderColor: '#06b6d4',
+        borderWidth: 2,
+        borderRadius: 10
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => ` ${ctx.raw} unit/bulan` } }
+      },
+      scales: {
+        x: { grid: { color: '#f1f5f9' }, ticks: { font: { family: 'Plus Jakarta Sans', size: 12, weight: '600' } } },
+        y: { grid: { display: false }, ticks: { font: { family: 'Plus Jakarta Sans', size: 12, weight: '600' } } }
+      }
+    }
+  });
+}
+</script>
+{% endblock %}

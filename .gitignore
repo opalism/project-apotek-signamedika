@@ -1,0 +1,54 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Caches
+.pytest_cache/
+
+# Virtual Environment
+venv/
+env/
+ENV/
+
+# Environment variables & secrets
+.env
+.env.local
+
+# Instance & Database files
+instance/
+*.sqlite3
+*.db
+
+# Uploaded files (keep .gitkeep)
+uploads/*
+!uploads/.gitkeep
+
+# IDE & Editor files
+.vscode/
+.idea/
+
+# OS specific files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Arsip Lokal Dokumen Skripsi & Sidang
+arsip_skripsi/
+Dokumentasi/
+
+# Dokumen skripsi, presentasi, dan dump database
+*.docx
+*.doc
+*.pptx
+*.ppt
+*.pdf
+*.sql
+*skripsi*
+*Skripsi*
+*sidang*
+*Sidang*
+~$*
+# Data asli apotek (tidak dipublikasikan)
+data-riil.xlsx

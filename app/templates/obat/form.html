@@ -1,0 +1,182 @@
+{% extends 'layout/base.html' %}
+{% block title %}{{ 'Edit' if action == 'edit' else 'Tambah' }} Obat — Apotek Signa Medika{% endblock %}
+{% block page_name %}{{ 'Edit Obat' if action == 'edit' else 'Tambah Obat Baru' }}{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+  <a href="{{ url_for('obat.list') }}" class="text-decoration-none text-muted small">
+    <i class="bi bi-arrow-left me-1"></i>Kembali ke Daftar Obat
+  </a>
+  <h1 class="page-title mt-2">
+    <i class="bi bi-{% if action == 'edit' %}pencil-square{% else %}plus-circle{% endif %} me-2 text-primary"></i>
+    {{ 'Edit Data Obat' if action == 'edit' else 'Tambah Obat Baru' }}
+  </h1>
+  <p class="page-subtitle">{{ 'Ubah informasi obat yang sudah ada.' if action == 'edit' else 'Isi formulir di bawah untuk mendaftarkan obat baru ke sistem.' }}</p>
+</div>
+
+<div class="card-m" style="max-width:860px">
+  <div class="card-m-body">
+    <form method="POST" id="formObat">
+
+      <!-- BAGIAN 1: Informasi Dasar -->
+      <div class="form-section-label">
+        <i class="bi bi-capsule" aria-hidden="true"></i> Informasi Dasar Obat
+      </div>
+
+      <div class="row g-3 mb-1">
+        <div class="col-md-8">
+          <label class="form-label">
+            Nama Obat <span class="text-danger">*</span>
+          </label>
+          <input type="text" name="nama_obat" id="nama_obat" class="form-control"
+                 value="{{ obat.nama_obat if obat else '' }}"
+                 placeholder="cth: Paracetamol 500mg, Amoxicillin 500mg..."
+                 required>
+          <div class="field-help"><i class="bi bi-lightbulb-fill me-1 text-warning"></i>Isi nama obat selengkap mungkin, termasuk dosis jika ada.</div>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Satuan</label>
+          <select name="satuan" class="form-select">
+            <option value="">— Pilih Satuan —</option>
+            {% for s in ['Tablet','Kapsul','Botol','Ampul','Strip','Sachet','Vial','Tube','Dus'] %}
+            <option value="{{ s }}" {{ 'selected' if obat and obat.satuan == s }}>{{ s }}</option>
+            {% endfor %}
+          </select>
+          <div class="field-help">Satuan per unit pembelian/penjualan obat.</div>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Supplier / Distributor</label>
+          <input type="text" name="supplier" class="form-control"
+                 placeholder="cth: PRIMA HERBAL, PT. INDRA GIRI RAYA..."
+                 value="{{ obat.supplier if obat else '' }}">
+          <div class="field-help">Nama PBF/Distributor pemasok obat.</div>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Kategori</label>
+          <input type="text" name="kategori" class="form-control"
+                 placeholder="cth: OTC, Obat Keras, Alkes, Herbal..."
+                 value="{{ obat.kategori if obat else '' }}">
+          <div class="field-help">Kelompok/jenis obat (opsional, untuk memudahkan pencarian).</div>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">
+            Jumlah Terjual per Bulan
+            <span class="help-hint" data-tooltip="Rata-rata berapa unit obat ini terjual setiap bulan. Angka ini sangat penting untuk menentukan kategori Fast/Slow Moving.">?</span>
+          </label>
+          <div class="input-group">
+            <input type="number" min="0" name="jumlah_terjual_per_bulan" class="form-control"
+                   value="{{ obat.jumlah_terjual_per_bulan if obat else 0 }}"
+                   placeholder="0">
+            <span class="input-group-text">unit/bulan</span>
+          </div>
+          <div class="field-help"><i class="bi bi-star-fill me-1 text-warning"></i><strong>Kolom penting!</strong> Isi dengan rata-rata penjualan bulanan. Data ini digunakan untuk analisis clustering.</div>
+        </div>
+      </div>
+
+      <!-- BAGIAN 2: Harga & Biaya -->
+      <div class="form-section">
+        <div class="form-section-label">
+          <i class="bi bi-cash-coin"></i> Harga & Biaya
+        </div>
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label">
+              Harga Beli (Rp)
+              <span class="help-hint" data-tooltip="Harga beli obat dari distributor/supplier (HPP).">?</span>
+            </label>
+            <div class="input-group">
+              <span class="input-group-text">Rp</span>
+              <input type="number" min="0" step="1" name="harga_beli" class="form-control"
+                     value="{{ obat.harga_beli if obat else 0 }}"
+                     placeholder="0">
+            </div>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">
+              Harga Jual (Rp)
+              <span class="help-hint" data-tooltip="Harga jual obat kepada pasien/pelanggan.">?</span>
+            </label>
+            <div class="input-group">
+              <span class="input-group-text">Rp</span>
+              <input type="number" min="0" step="1" name="harga_jual" class="form-control"
+                     value="{{ obat.harga_jual if obat else 0 }}"
+                     placeholder="0">
+            </div>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">
+              Biaya Pesan per Order (Rp)
+              <span class="help-hint" data-tooltip="Biaya yang dikeluarkan setiap kali melakukan pemesanan, misal: biaya kirim, biaya administrasi, dll.">?</span>
+            </label>
+            <div class="input-group">
+              <span class="input-group-text">Rp</span>
+              <input type="number" min="0" step="1" name="biaya_pesan" class="form-control"
+                     value="{{ obat.biaya_pesan if obat else 0 }}"
+                     placeholder="0">
+            </div>
+            <div class="field-help">Biaya transport/admin per sekali pesan ke supplier.</div>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">
+              Biaya Simpan (% per tahun)
+              <span class="help-hint" data-tooltip="Persentase biaya penyimpanan stok dari harga beli obat per tahun. Biasanya antara 10-30%.">?</span>
+            </label>
+            <div class="input-group">
+              <input type="number" min="0" max="100" step="0.01" name="biaya_simpan_persen" class="form-control"
+                     value="{{ obat.biaya_simpan_persen if obat else 0 }}"
+                     placeholder="20">
+              <span class="input-group-text">% / tahun</span>
+            </div>
+            <div class="field-help">cth: isi <strong>20</strong> artinya biaya simpan 20% dari harga beli per tahun.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- BAGIAN 3: Stok & Pengiriman -->
+      <div class="form-section">
+        <div class="form-section-label">
+          <i class="bi bi-box-seam"></i> Stok & Pengiriman
+        </div>
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label">
+              Stok Rata-rata (unit)
+              <span class="help-hint" data-tooltip="Rata-rata jumlah stok obat yang tersedia di apotek saat ini.">?</span>
+            </label>
+            <div class="input-group">
+              <input type="number" min="0" name="stok_rata_rata" class="form-control"
+                     value="{{ obat.stok_rata_rata if obat else 0 }}"
+                     placeholder="0">
+              <span class="input-group-text">unit</span>
+            </div>
+            <div class="field-help">Berapa unit obat yang ada di rak/gudang sekarang.</div>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">
+              Lead Time
+              <span class="help-hint" data-tooltip="Lead Time = berapa hari dari saat pemesanan ke supplier sampai barang tiba di apotek. Angka ini digunakan untuk menghitung kapan harus memesan ulang.">?</span>
+            </label>
+            <div class="input-group">
+              <input type="number" min="0" name="lead_time_hari" class="form-control"
+                     value="{{ obat.lead_time_hari if obat else 0 }}"
+                     placeholder="0">
+              <span class="input-group-text">hari</span>
+            </div>
+            <div class="field-help">cth: isi <strong>3</strong> jika obat biasanya tiba 3 hari setelah dipesan.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tombol Aksi -->
+      <div class="d-flex gap-2 pt-3 mt-2 border-top">
+        <button type="submit" class="btn btn-primary px-4">
+          <i class="bi bi-check-lg"></i> {{ 'Simpan Perubahan' if action == 'edit' else 'Tambah Obat' }}
+        </button>
+        <a href="{{ url_for('obat.list') }}" class="btn btn-outline-secondary px-4">
+          <i class="bi bi-x-lg"></i> Batal
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

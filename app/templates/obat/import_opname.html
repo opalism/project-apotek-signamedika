@@ -1,0 +1,107 @@
+{% extends 'layout/base.html' %}
+{% block title %}Stok Opname Bulanan — Apotek Signa Medika{% endblock %}
+{% block page_name %}Stok Opname{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+  <h1 class="page-title mt-2">
+    <i class="bi bi-clipboard2-check me-2 text-success"></i>Stok Opname Bulanan
+  </h1>
+  <p class="page-subtitle">Perbarui jumlah sisa stok dan total obat terjual (mutasi bulanan). Algoritma AI akan otomatis menyesuaikan diri.</p>
+</div>
+
+<div class="row g-4">
+  <div class="col-md-7">
+    <div class="card-m border-success border-top border-3">
+      <div class="card-m-header">
+        <span class="card-m-title"><i class="bi bi-upload me-2 text-success"></i>Upload File Opname (Excel)</span>
+      </div>
+      <div class="card-m-body">
+        <form method="POST" enctype="multipart/form-data" id="formImport">
+          <!-- Dropzone -->
+          <div class="dropzone-area mb-3" id="dropzone" style="border-color: #86efac; background: #f0fdf4;">
+            <i class="bi bi-cloud-upload text-success"></i>
+            <p class="mb-2 text-dark"><strong>Klik di sini</strong> atau seret file ke area ini</p>
+            <p style="font-size:.78rem" class="text-success">Format yang didukung: <strong>.xlsx</strong></p>
+            <div id="fileNameDisplay" class="mt-2 text-success fw-600" style="font-size:.85rem;display:none"></div>
+          </div>
+
+          <input type="file" name="file" id="fileInput"
+                 accept=".xlsx,.xls,.csv" required
+                 style="display:none">
+
+          <button type="submit" class="btn btn-success px-4 w-100" id="btnImport" disabled>
+            <i class="bi bi-rocket-takeoff-fill"></i> Sikat! Update & Proses K-Means
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-5">
+    <!-- Panduan -->
+    <div class="card-m mb-3">
+      <div class="card-m-header"><span class="card-m-title"><i class="bi bi-info-circle me-2 text-success"></i>Panduan Anti-Pusing</span></div>
+      <div class="card-m-body">
+        <ul class="list-unstyled mb-0" style="font-size:.85rem; line-height: 1.6;">
+          <li class="mb-3">
+            <i class="bi bi-1-circle-fill text-success fs-5 me-2"></i>
+            Silakan <strong>Download Template</strong> di bawah ini. Template akan diformat cerdas berisikan ratusan nama obat apotek Anda, jadi tidak perlu ngetik ulang.
+          </li>
+          <li class="mb-3">
+            <i class="bi bi-2-circle-fill text-success fs-5 me-2"></i>
+            Anda hanya perlu peduli pada 2 kolom saja: <strong>Stok Tersisa Apotek</strong> dan <strong>Terjual Bulan Ini</strong>.
+          </li>
+          <li class="mb-0">
+            <i class="bi bi-3-circle-fill text-success fs-5 me-2"></i>
+            Setelah selesai diisi di program Excel, simpan file-nya, lalu <strong>Upload</strong> ke tempat penarikan di sebelah kiri. Beres! AI akan memikirkan sisanya.
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Download Template -->
+    <a href="{{ url_for('obat.download_template_opname') }}" class="btn w-100 justify-content-center" style="background-color: #dcfce7; color: #15803d; font-weight: 700; border: 1px dashed #16a34a; padding: 12px; border-radius: 12px; transition: all 0.3s;" onmouseover="this.style.backgroundColor='#bbf7d0'" onmouseout="this.style.backgroundColor='#dcfce7'">
+      <i class="bi bi-file-earmark-spreadsheet-fill fs-5 me-2"></i> Download Template (Berisi 988 Obat Anda)
+    </a>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const dropzone   = document.getElementById('dropzone');
+const fileInput  = document.getElementById('fileInput');
+const btnImport  = document.getElementById('btnImport');
+const fileDisplay = document.getElementById('fileNameDisplay');
+
+function handleFile(file) {
+  if (!file) return;
+  fileDisplay.textContent = '✓ File Siap: ' + file.name;
+  fileDisplay.style.display = 'block';
+  btnImport.disabled = false;
+}
+
+dropzone.addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', () => handleFile(fileInput.files[0]));
+
+dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.style.backgroundColor = '#dcfce7'; });
+dropzone.addEventListener('dragleave', () => dropzone.style.backgroundColor = '#f0fdf4');
+dropzone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropzone.style.backgroundColor = '#f0fdf4';
+  const file = e.dataTransfer.files[0];
+  if (file) {
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    fileInput.files = dt.files;
+    handleFile(file);
+  }
+});
+
+document.getElementById('formImport').addEventListener('submit', function() {
+  btnImport.disabled = true;
+  btnImport.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Menghitung Algoritma AI... agak lama harap dijaga!';
+});
+</script>
+{% endblock %}
