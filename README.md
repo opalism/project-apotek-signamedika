@@ -1,295 +1,282 @@
-# Apotek Signa Medika: Klasifikasi Obat dan Rekomendasi Pengadaan
+<div align="center">
 
-Aplikasi web untuk membantu Apotek Signa Medika (Kec. Legonkulon, Kab. Subang) memutuskan obat mana yang perlu dipesan, berapa banyak, dan kapan. Sistem mengelompokkan obat menjadi **Fast Moving**, **Medium Moving**, dan **Slow Moving** dengan algoritma K-Means, lalu menghitung jumlah pesanan ekonomis (EOQ) dan titik pemesanan ulang (ROP) untuk setiap obat.
+  <img src="app/static/img/logo-signa.png" alt="Logo Apotek Signa Medika" width="150">
 
-Proyek ini dibuat sebagai Tugas Akhir.
+  # Sistem Pendukung Keputusan Pengadaan Obat
+  ### Apotek Signa Medika · Kec. Legonkulon, Kab. Subang
 
-## Daftar Isi
+  [![Python](https://img.shields.io/badge/Python-3.11.2-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
+  [![Flask](https://img.shields.io/badge/Flask-3.0.3-000000?style=for-the-badge&logo=flask&logoColor=white)](https://flask.palletsprojects.com/)
+  [![MySQL](https://img.shields.io/badge/MySQL-Database-4479A1?style=for-the-badge&logo=mysql&logoColor=white)](https://www.mysql.com/)
+  [![scikit-learn](https://img.shields.io/badge/scikit--learn-K--Means-F7931E?style=for-the-badge&logo=scikitlearn&logoColor=white)](https://scikit-learn.org/)
+  [![Bootstrap](https://img.shields.io/badge/Bootstrap-5.3-7952B3?style=for-the-badge&logo=bootstrap&logoColor=white)](https://getbootstrap.com/)
+  [![Tests](https://img.shields.io/badge/Tests-40%20Passed-22c55e?style=for-the-badge&logo=pytest&logoColor=white)](tests/)
 
-- [Fitur](#fitur)
-- [Teknologi](#teknologi)
-- [Alur Kerja Sistem](#alur-kerja-sistem)
-- [Metode Perhitungan](#metode-perhitungan)
-- [Instalasi](#instalasi)
-- [Format File Excel](#format-file-excel)
-- [Struktur Folder](#struktur-folder)
-- [Skema Database](#skema-database)
-- [Pengujian](#pengujian)
+  <p align="center">
+    Aplikasi web cerdas untuk membantu apoteker menentukan prioritas restock, kuantitas pemesanan ekonomis (<b>EOQ</b>), dan batas titik pemesanan ulang (<b>ROP</b>) secara presisi menggunakan metode <b>K-Means Clustering</b>.
+  </p>
 
-## Fitur
+  <p align="center">
+    <a href="#-fitur-utama">Fitur</a> •
+    <a href="#-alur-kerja-sistem">Alur Sistem</a> •
+    <a href="#-metode-dan-formula-perhitungan">Metode & Rumus</a> •
+    <a href="#-panduan-instalasi">Instalasi</a> •
+    <a href="#-format-file-excel">Format Data</a> •
+    <a href="#-struktur-folder">Struktur Folder</a> •
+    <a href="#-pengujian-sistem">Pengujian</a>
+  </p>
 
-| Menu | Fungsi |
-|---|---|
-| Dashboard | Total obat, jumlah per cluster, jumlah obat berstok kritis, grafik distribusi cluster, dan 10 obat terlaris |
-| Data Obat | Tambah, ubah, hapus data obat, serta impor massal dari Excel/CSV (obat yang namanya sudah ada akan diperbarui) |
-| Stok Opname | Unduh template berisi seluruh nama obat, isi stok dan penjualan bulan ini, lalu unggah. Clustering dan EOQ dihitung ulang otomatis |
-| Proses Clustering | Grafik Elbow untuk membantu memilih K, lalu menjalankan K-Means dan EOQ |
-| Hasil Clustering | Tabel hasil per obat, scatter plot, nilai DBI dan Silhouette, serta rincian perhitungan langkah demi langkah |
-| Rekomendasi EOQ | Jumlah pesanan optimal, ROP, kebutuhan mingguan, dan frekuensi pesan per bulan |
-| Stok Kritis | Daftar obat dengan stok di bawah atau sama dengan ROP. Notifikasi lonceng di header mengambil data dari sini |
-| Laporan | Pratinjau laporan dan unduh dalam format PDF |
+</div>
 
-## Teknologi
+---
 
-- Python 3.11, Flask 3.0 (pola MVC dengan Blueprint)
-- Flask-SQLAlchemy, Flask-Migrate, Flask-Login
-- MySQL / MariaDB melalui PyMySQL
-- pandas, NumPy, scikit-learn (MinMaxScaler, KMeans, davies_bouldin_score)
-- openpyxl untuk baca/tulis Excel, xhtml2pdf untuk ekspor PDF
-- Bootstrap 5, Bootstrap Icons, Chart.js di sisi tampilan
-- pytest untuk pengujian
+## 🌟 Fitur Utama
 
-## Alur Kerja Sistem
+| Modul | Ikon | Deskripsi Fungsional |
+|---|:---:|---|
+| **Dashboard Eksekutif** | 📊 | Ringkasan metrik total obat, kartu distribusi cluster (Fast, Medium, Slow), peringatan stok kritis, grafik donat proporsi, serta grafik bar 10 obat terlaris. |
+| **Manajemen Obat** | 💊 | Pengelolaan master data obat (CRUD) dan fitur impor massal format Excel/CSV dengan mekanisme **Upsert O(1)** (update instan jika nama obat sudah ada). |
+| **Stok Opname Dinamis** | 📋 | Unduh template otomatis berisi seluruh daftar obat terdaftar, input fisik stok berjalan & penjualan bulan ini, unggah kembali, dan sistem otomatis melakukan sinkronisasi serta re-clustering. |
+| **K-Means Clustering** | 🔬 | Evaluasi nilai *inertia* kurva **Elbow Method** interaktif, penentuan klaster deterministik berbasis sampel representatif, dan visualisasi scatter plot sebaran data. |
+| **Rekomendasi EOQ & ROP** | 📦 | Perhitungan otomatis kuantitas order ekonomis mingguan (EOQ), batas titik pemesanan ulang (ROP), estimasi kebutuhan mingguan, serta frekuensi order bulanan. |
+| **Monitoring Stok Kritis** | 🚨 | Deteksi obat dengan kondisi `Stok Fisik <= ROP` yang terintegrasi langsung dengan lonceng notifikasi *badge* di bilah navigasi atas (*header*). |
+| **Pelaporan & Ekspor PDF** | 📑 | Pratinjau tabel rekapitulasi komprehensif metrik apotek dan ekspor cetak dokumen formal PDF siap pakai via xhtml2pdf. |
 
-### Alur pengguna
+---
+
+## 🛠️ Arsitektur & Teknologi
+
+```
+├── Backend       : Python 3.11.2, Flask 3.0.3 (Pola MVC dengan Blueprint Modular)
+├── ORM & DB      : Flask-SQLAlchemy 3.1, Flask-Migrate (Alembic), PyMySQL (MySQL / MariaDB)
+├── Autentikasi   : Flask-Login 0.6, Werkzeug Security (Password Hashing)
+├── Data Science  : scikit-learn 1.5, pandas 2.2, NumPy 1.26
+├── Dokumen & IO  : openpyxl (Excel Parser & Generator), xhtml2pdf (PDF Renderer)
+├── Antarmuka     : Bootstrap 5.3, Bootstrap Icons, Chart.js, Vanilla CSS Custom Design
+└── Test Suite    : pytest 8.3 (In-Memory SQLite Session Fixture)
+```
+
+---
+
+## 🔄 Alur Kerja Sistem
+
+### 1. Alur Pengguna (User Journey)
 
 ```mermaid
 flowchart TD
-    A[Login admin] --> B[Dashboard]
-    B --> C{Data obat sudah ada?}
-    C -- Belum --> D[Impor Excel data obat<br/>atau input manual]
-    C -- Sudah --> E[Stok Opname bulanan]
-    D --> F[Proses Clustering]
-    E --> G[Clustering dan EOQ<br/>dihitung ulang otomatis]
-    F --> H[Hasil Clustering<br/>Fast / Medium / Slow]
+    A([🔑 Login Admin]) --> B[📊 Dashboard Utama]
+    B --> C{Status Master Data?}
+    C -- Belum Ada Data --> D[📥 Impor Master Obat Excel / Input Manual]
+    C -- Sudah Ada Data --> E[📋 Stok Opname Bulanan]
+    D --> F[⚙️ Eksekusi Clustering K-Means]
+    E --> G[🔄 Auto Re-Clustering & Sinkronisasi EOQ]
+    F --> H[📈 Hasil Klaster: Fast, Medium, Slow]
     G --> H
-    H --> I[Rekomendasi EOQ dan ROP]
-    I --> J[Cek Stok Kritis]
-    J --> K[Unduh Laporan PDF]
+    H --> I[📦 Rekomendasi EOQ, ROP & Frekuensi Order]
+    I --> J[🚨 Pantau Stok Kritis]
+    J --> K([📑 Cetak Laporan PDF])
 ```
 
-### Alur pemrosesan data
+### 2. Alur Pemrosesan Data & Perhitungan Algoritma
 
 ```mermaid
 flowchart LR
-    A[(Tabel obat)] --> B[Ambil atribut:<br/>jumlah terjual dan harga jual]
-    B --> C[Normalisasi Min-Max<br/>ke rentang 0 sampai 1]
-    C --> D[Tentukan centroid awal]
-    D --> E[Iterasi K-Means<br/>sampai konvergen]
-    E --> F[Beri label cluster<br/>berdasarkan rata-rata penjualan]
-    F --> G[Hitung DBI dan Silhouette]
-    F --> H[Hitung EOQ, ROP,<br/>kebutuhan mingguan, frekuensi]
-    H --> I[Tentukan status stok]
-    G --> J[(riwayat_proses)]
-    F --> K[(hasil_cluster)]
-    I --> L[(hasil_eoq)]
+    subgraph Input Data
+        A[(Tabel Obat)]
+    end
+
+    subgraph Clustering K-Means
+        B[Filter Atribut: Terjual & Harga] --> C[Min-Max Normalization]
+        C --> D[Initial Centroids Deterministik]
+        D --> E[Iterasi K-Means Konvergen]
+        E --> F[Labeling: Slow, Medium, Fast]
+        F --> G[Validasi: DBI & Silhouette]
+    end
+
+    subgraph Optimasi Inventori
+        H[Hitung Biaya Simpan H] --> I[Hitung EOQ Mingguan]
+        I --> J[Hitung Reorder Point ROP]
+        J --> K[Klasifikasi Status Stok]
+    end
+
+    subgraph Penyimpanan
+        L[(hasil_cluster)]
+        M[(hasil_eoq)]
+        N[(riwayat_proses)]
+    end
+
+    A --> B
+    F --> H
+    G --> N
+    F --> L
+    K --> M
 ```
 
-Setiap kali proses dijalankan, isi tabel `hasil_cluster` dan `hasil_eoq` dihapus lalu diisi ulang, sementara `riwayat_proses` menyimpan catatan setiap eksekusi.
+> [!NOTE]
+> Setiap kali proses kalkulasi dijalankan ulang, entri pada tabel `hasil_cluster` dan `hasil_eoq` diperbarui secara atomik, dan rekam jejak eksekusi dicatat ke tabel `riwayat_proses`.
 
-## Metode Perhitungan
+---
 
-Seluruh logika ada di [`app/services/kmeans_service.py`](app/services/kmeans_service.py).
+## 📐 Metode dan Formula Perhitungan
 
-### 1. Normalisasi
+Logika perhitungan matematis diimplementasikan secara terpusat pada file [`app/services/kmeans_service.py`](app/services/kmeans_service.py).
 
-Dua atribut yang dipakai untuk clustering adalah **jumlah terjual per bulan** dan **harga jual**. Keduanya dinormalisasi dengan Min-Max agar skala harga (ribuan rupiah) tidak mendominasi skala penjualan (unit):
+### 1. Normalisasi Data (Min-Max Scaler)
+Menghindari dominasi atribut skala besar (Harga Jual dalam puluhan ribu rupiah) terhadap atribut skala kecil (Jumlah Penjualan dalam unit):
 
-```
-x' = (x - min) / (max - min)
-```
+$$X' = \frac{X - X_{min}}{X_{max} - X_{min}}$$
 
-### 2. Centroid awal
+### 2. Centroid Awal Deterministik (K = 3)
+Centroid awal dihitung dari nilai rata-rata sampel representatif data riil apotek, menjamin stabilitas klaster yang identik pada setiap eksekusi:
 
-- **K = 3**: centroid awal dihitung secara deterministik dari rata-rata nilai ternormalisasi beberapa obat sampel, sama dengan perhitungan manual pada laporan Tugas Akhir. Hasilnya selalu sama setiap kali dijalankan.
+| Klaster | Kategori | Sampel Representatif Obat |
+|:---:|---|---|
+| **C1** | Slow Moving | *Madu Hitam Diabet*, *Madu Hitam Propolis 69*, *Sari Mengkudu Prima* |
+| **C2** | Fast Moving | *Amoxicillin HJ 500mg Tabet*, *Metformin HJ 500mg Tab*, *Voltadex 50 mg Tab* |
+| **C3** | Medium Moving | *Acetylcystein 200 mg Sampharind*, *Aciclovir Cr 5% First Medipharma*, *Aciclovir Cr 5% Indofarma*, *Acifar 200 Mg Tab* |
 
-  | Cluster | Sampel |
-  |---|---|
-  | C1 Slow Moving | Madu Hitam Diabet, Madu Hitam Propolis 69, Sari Mengkudu Prima |
-  | C2 Fast Moving | Amoxicillin HJ 500mg Tabet, Metformin HJ 500mg Tab, Voltadex 50 mg Tab |
-  | C3 Medium Moving | Acetylcystein 200 mg Sampharind Kap, Aciclovir Cr 5% First Medipharma, Aciclovir Cr 5% Indofarma, Acifar 200 Mg Tab |
+### 3. Validasi Kualitas Klaster
+* **Davies-Bouldin Index (DBI)**: Mengukur rasio sebaran dalam klaster terhadap jarak antarklaster. Nilai yang semakin kecil mendekati nol merepresentasikan pemisahan klaster yang semakin optimal.
+* **Silhouette Coefficient**: Mengukur derajat kedekatan data terhadap klasternya sendiri dibandingkan dengan klaster tetangga terdekat:
+  $$s(i) = \frac{b(i) - a(i)}{\max(a(i), b(i))}$$
 
-  Jika nama sampel tidak ditemukan di database, sistem memilih sampel pengganti dengan filter numerik.
+### 4. Economic Order Quantity (EOQ) & Reorder Point (ROP)
+Kalkulasi berbasis kebutuhan mingguan (standar 52 minggu kerja per tahun):
 
-- **K selain 3**: memakai inisialisasi bawaan scikit-learn (`random_state=42`, `n_init=10`).
+| Parameter | Notasi | Formula Perhitungan |
+|---|:---:|---|
+| **Permintaan Mingguan** | $D_{minggu}$ | $\frac{\text{Penjualan Bulanan} \times 12}{52}$ |
+| **Biaya Simpan Tahunan** | $H_{tahun}$ | $\frac{\text{Biaya Simpan \%}}{100} \times \text{Harga Beli}$ |
+| **Biaya Simpan Mingguan** | $H_{minggu}$ | $\frac{H_{tahun}}{52}$ |
+| **Economic Order Quantity** | $EOQ$ | $\left\lceil \sqrt{\frac{2 \times D_{minggu} \times \text{Biaya Pesan}}{H_{minggu}}} \right\rceil$ |
+| **Reorder Point** | $ROP$ | $\left\lceil D_{minggu} \times \frac{\text{Lead Time (Hari)}}{7} \right\rceil$ |
+| **Frekuensi Order** | $F$ | $\max\left(1, \left\lceil \frac{\text{Penjualan Bulanan}}{EOQ} \right\rceil\right)$ |
 
-### 3. Pelabelan cluster
+> [!IMPORTANT]
+> Obat ditandai sebagai **`Stok Kritis (Harus Reorder)`** jika:
+> $$\text{Stok Fisik} \le ROP$$
 
-Cluster diurutkan berdasarkan rata-rata jumlah terjual. Untuk K = 3, cluster dengan rata-rata terendah diberi label Slow Moving, tengah Medium Moving, tertinggi Fast Moving. Untuk K = 2 labelnya Slow dan Fast, sedangkan K lainnya diberi nama Cluster 1, Cluster 2, dan seterusnya.
+---
 
-### 4. Validasi cluster
+## 🚀 Panduan Instalasi
 
-- **Davies-Bouldin Index (DBI)**: dihitung dengan `davies_bouldin_score`. Semakin kecil, semakin baik pemisahan antar-cluster.
-- **Silhouette**: dihitung berbasis jarak ke centroid, dengan `a` = jarak data ke centroid cluster-nya dan `b` = jarak ke centroid terdekat berikutnya. Nilai mendekati 1 berarti data berada jelas di cluster-nya.
+### Prasyarat Sistem
+* Python `3.11.x`
+* MySQL Server / MariaDB (misalnya via XAMPP)
+* Git CLI
 
-```
-s(i) = (b - a) / max(a, b)
-```
+### Langkah Instalasi Cepat
 
-### 5. EOQ dan ROP (basis mingguan, 52 minggu per tahun)
-
-| Simbol | Arti | Rumus |
-|---|---|---|
-| D | Permintaan per minggu | `jumlah terjual per bulan × 12 / 52` |
-| S | Biaya sekali pesan (Rp) | dari data obat |
-| H tahun | Biaya simpan per unit per tahun | `(biaya simpan % / 100) × harga beli` |
-| H | Biaya simpan per unit per minggu | `H tahun / 52` |
-| EOQ | Jumlah pesanan ekonomis | `ceil( √(2 × D × S / H) )` |
-| ROP | Titik pemesanan ulang | `ceil( D × lead time hari / 7 )` |
-| Kebutuhan mingguan | | `ceil(D)` |
-| Frekuensi pesan per bulan | | `ceil(jumlah terjual per bulan / EOQ)` |
-
-Obat berstatus **Stok Kritis (Harus Reorder)** jika `stok fisik ≤ ROP`, selain itu **Stok Aman**.
-
-## Instalasi
-
-### Prasyarat
-
-- Python 3.11
-- MySQL atau MariaDB (misalnya lewat XAMPP)
-- Git
-
-### Langkah
-
-1. Clone repositori
-
+1. **Clone Repositori**
    ```bash
    git clone https://github.com/opalism/project-apotek-signamedika.git
    cd project-apotek-signamedika
    ```
 
-2. Buat dan aktifkan virtual environment
-
+2. **Buat dan Aktifkan Virtual Environment**
    ```bash
+   # Windows (PowerShell / CMD)
    python -m venv venv
-
-   # Windows
-   venv\Scripts\activate
+   .\venv\Scripts\activate
 
    # Linux / macOS
+   python3 -m venv venv
    source venv/bin/activate
    ```
 
-3. Instal dependensi
-
+3. **Instal Dependensi Pustaka**
    ```bash
    pip install -r requirements.txt
    ```
 
-4. Buat database kosong di MySQL
-
+4. **Konfigurasi Database MySQL**
+   Buka MySQL CLI / phpMyAdmin, lalu buat database baru:
    ```sql
-   CREATE DATABASE apotek_signa_medika;
+   CREATE DATABASE apotek_signa_medika CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
    ```
 
-5. Salin `.env.example` menjadi `.env`, lalu sesuaikan isinya
-
+5. **Setup File Environment (.env)**
+   Salin file template [`.env.example`](.env.example) menjadi `.env`:
+   ```bash
+   cp .env.example .env
+   ```
+   Sesuaikan konfigurasi koneksi database Anda di file `.env`:
    ```env
    FLASK_APP=run.py
    FLASK_ENV=development
-   SECRET_KEY=isi-dengan-string-acak
+   SECRET_KEY=kunci_rahasia_anda_disini_123
    SQLALCHEMY_DATABASE_URI=mysql+pymysql://root:@localhost/apotek_signa_medika
    ```
 
-6. Isi database dengan data awal
-
+6. **Inisialisasi Database (Seeding)**
+   Jalankan script inisialisasi:
    ```bash
    python seed.py
    ```
+   Script ini akan membuat seluruh tabel, men-setup user administrator, dan jika tersedia file `data-riil.xlsx` di root direktori lokal, sistem akan langsung mengimpor data dan mengeksekusi perhitungan awal.
 
-   Skrip ini membuat semua tabel dan akun admin. Jika file `data-riil.xlsx` ada di root proyek, skrip juga mengimpor datanya lalu menjalankan clustering K = 3 dan EOQ.
+   > [!WARNING]
+   > Menjalankan `seed.py` mengeksekusi `db.drop_all()`. Pastikan hanya dijalankan saat awal instalasi atau reset sistem.
 
-   `data-riil.xlsx` berisi data asli apotek sehingga tidak disertakan di repositori ini. Tanpa file itu, database terisi akun admin saja. Data obat bisa dimasukkan lewat menu **Data Obat > Impor Excel** dengan format seperti [`data-obat-contoh.xlsx`](data-obat-contoh.xlsx).
-
-   > **Perhatian:** `seed.py` menjalankan `drop_all()`. Semua tabel dan data yang sudah ada di database tersebut akan dihapus.
-
-7. Jalankan aplikasi
-
+7. **Jalankan Aplikasi Web**
    ```bash
    python run.py
    ```
+   Akses melalui browser Anda di: **[http://127.0.0.1:5000](http://127.0.0.1:5000)**
 
-   Buka http://127.0.0.1:5000 dan login dengan:
+### Kredensial Default Administrator
+| Username | Password | Role |
+|:---:|:---:|:---:|
+| `admin` | `admin123` | Administrator |
 
-   | Username | Password |
-   |---|---|
-   | `admin` | `admin123` |
+---
 
-   Ganti password ini sebelum aplikasi dipakai di luar lingkungan lokal.
+## 📋 Format File Excel
 
-## Format File Excel
+### 1. Template Impor Data Master Obat
+Gunakan sheet bernama `Data Obat` (atau sheet pertama). Template resmi dapat langsung diunduh dari sistem atau melalui file [`data-obat-contoh.xlsx`](data-obat-contoh.xlsx).
 
-### Impor data obat
+| Nama Kolom Header | Tipe Data | Keterangan & Contoh |
+|---|:---:|---|
+| `Nama Obat` | Teks | Identifier unik nama obat (*Amoxicillin HJ 500mg*) |
+| `Supplier` | Teks | Nama PBF / Pemasok resmi (*PT. Kimia Farma*) |
+| `Kategori` | Teks | Golongan terapi (*Antibiotik, Analgesik*) |
+| `Satuan` | Teks | Satuan kemasan (*Strip, Botol, Tablet*) |
+| `Jumlah Terjual per Bulan` | Numerik | Total unit penjualan per bulan (*147*) |
+| `Harga Beli (Rp)` | Numerik | Harga modal beli satuan (*4560*) |
+| `Harga Jual (Rp)` | Numerik | Harga jual apotek ke konsumen (*6000*) |
+| `Stok Rata-rata` | Numerik | Jumlah stok fisik di apotek (*50*) |
+| `Lead Time (Hari)` | Numerik | Waktu tunggu pengiriman pemasok (*3*) |
+| `Biaya Pesan (Rp)` | Numerik | Biaya administrasi & kirim per pesanan (*5500*) |
+| `Biaya Simpan (% per tahun)` | Numerik | Persentase biaya simpan persediaan (*26*) |
 
-Nama sheet `Data Obat` (jika tidak ada, sheet pertama yang dibaca). Contoh lengkap ada di [`data-obat-contoh.xlsx`](data-obat-contoh.xlsx), yang juga bisa diunduh dari halaman impor.
+### 2. Template Stok Opname
+Template ini digenerate secara langsung oleh sistem via tombol **Download Template Opname** pada menu navigasi:
+* Kolom `Nama Obat`: Menampilkan seluruh obat terdaftar di database (tidak boleh diubah).
+* Kolom `Stok Tersisa Apotek`: Masukkan hasil perhitungan fisik stok riil saat opname.
+* Kolom `Terjual Bulan Ini`: Masukkan total penjualan berjalan bulan ini.
 
-| Kolom | Tipe | Dipakai untuk |
-|---|---|---|
-| Nama Obat | teks | Kunci pencocokan (tidak peka huruf besar/kecil) |
-| Supplier | teks | Informasi |
-| Kategori | teks | Informasi |
-| Satuan | teks | Informasi |
-| Jumlah Terjual per Bulan | angka | Clustering dan EOQ |
-| Harga Beli (Rp) | angka | Biaya simpan |
-| Harga Jual (Rp) | angka | Clustering |
-| Stok Rata-rata | angka | Status stok |
-| Lead Time (Hari) | angka | ROP |
-| Biaya Pesan (Rp) | angka | EOQ |
-| Biaya Simpan (% per tahun) | angka | Biaya simpan |
+---
 
-Biaya simpan yang terbaca sebagai desimal dari format persen Excel (misalnya `0.26`) otomatis dikonversi menjadi `26`.
-
-### Stok opname
-
-Template dibuat otomatis dari halaman Stok Opname dan sudah berisi semua nama obat.
-
-| Kolom | Keterangan |
-|---|---|
-| Nama Obat | Jangan diubah, dipakai untuk mencocokkan data |
-| Stok Tersisa Apotek | Stok fisik hasil hitung |
-| Terjual Bulan Ini | Jumlah penjualan bulan berjalan |
-
-Nama obat yang tidak dikenal akan dilewati.
-
-## Struktur Folder
-
-```
-project-apotek-signamedika/
-├── app/
-│   ├── __init__.py              # Application factory, registrasi blueprint
-│   ├── config.py                # Konfigurasi dari .env
-│   ├── controllers/             # Route per modul (Blueprint)
-│   │   ├── auth_controller.py       # Login, logout
-│   │   ├── dashboard_controller.py  # Ringkasan dan grafik
-│   │   ├── obat_controller.py       # CRUD, impor Excel, stok opname
-│   │   ├── clustering_controller.py # Elbow, proses, hasil clustering
-│   │   ├── eoq_controller.py        # Rekomendasi EOQ
-│   │   ├── alert_controller.py      # Stok kritis dan data notifikasi
-│   │   └── laporan_controller.py    # Pratinjau dan PDF
-│   ├── models/
-│   │   └── models.py            # User, Obat, HasilCluster, HasilEOQ, RiwayatProses
-│   ├── services/
-│   │   ├── kmeans_service.py    # Normalisasi, K-Means, validasi, EOQ, ROP
-│   │   ├── import_service.py    # Impor data obat dan stok opname
-│   │   └── pdf_service.py       # Render template ke PDF
-│   ├── static/                  # CSS dan gambar
-│   └── templates/               # Template Jinja2 per modul
-├── migrations/                  # Riwayat migrasi Alembic
-├── tests/                       # Pengujian pytest
-├── uploads/                     # Tempat file unggahan (tidak di-commit)
-├── data-obat-contoh.xlsx        # Template impor data obat
-├── seed.py                      # Inisialisasi database
-├── run.py                       # Titik masuk aplikasi
-├── requirements.txt
-└── .env.example
-```
-
-## Skema Database
+## 🗄️ Skema Database (ERD)
 
 ```mermaid
 erDiagram
-    users ||--o{ riwayat_proses : menjalankan
-    obat ||--o| hasil_cluster : memiliki
-    obat ||--o| hasil_eoq : memiliki
+    users ||--o{ riwayat_proses : "menjalankan"
+    obat ||--o| hasil_cluster : "memiliki"
+    obat ||--o| hasil_eoq : "memiliki"
 
     users {
         int id PK
         string username
         string password_hash
         string role
+        datetime created_at
     }
+
     obat {
         int id PK
+        string kode_obat
         string nama_obat
         string supplier
         string kategori
@@ -302,6 +289,7 @@ erDiagram
         decimal biaya_pesan
         decimal biaya_simpan_persen
     }
+
     hasil_cluster {
         int id PK
         int obat_id FK
@@ -309,16 +297,22 @@ erDiagram
         decimal norm_penjualan
         decimal norm_harga
         text dist_c1_c2_c3
+        int cluster_raw
+        datetime tanggal_proses
     }
+
     hasil_eoq {
         int id PK
         int obat_id FK
         decimal kebutuhan_mingguan
+        decimal biaya_simpan
         decimal eoq_mingguan
         decimal reorder_point
         string status_stok
         decimal frekuensi_pesan_per_bulan
+        datetime tanggal_hitung
     }
+
     riwayat_proses {
         int id PK
         int user_id FK
@@ -326,23 +320,86 @@ erDiagram
         decimal dbi_score
         decimal silhouette_score
         int jumlah_data
+        text keterangan
         datetime executed_at
     }
 ```
 
-## Pengujian
+---
 
-Pengujian memakai SQLite in-memory, jadi tidak menyentuh database MySQL.
+## 📁 Struktur Folder Proyek
+
+```
+project-apotek-signamedika/
+├── app/
+│   ├── __init__.py              # Inisialisasi Flask Application Factory & Blueprints
+│   ├── config.py                # Konfigurasi aplikasi dari .env
+│   ├── controllers/             # Layer Controller (Flask Blueprints)
+│   │   ├── alert_controller.py      # Monitoring stok kritis & API notifikasi lonceng
+│   │   ├── auth_controller.py       # Alur otentikasi login & logout
+│   │   ├── clustering_controller.py # Kalkulasi Elbow, eksekusi K-Means, & hasil klaster
+│   │   ├── dashboard_controller.py  # Statistik utama, metrik ringkasan, & Chart.js
+│   │   ├── eoq_controller.py        # Tabel rekomendasi EOQ, ROP, & frekuensi pesan
+│   │   ├── laporan_controller.py    # Pratinjau laporan & download berkas PDF
+│   │   └── obat_controller.py       # CRUD obat, impor Excel massal, & stok opname
+│   ├── models/
+│   │   └── models.py            # Definisi model ORM (SQLAlchemy Database Entities)
+│   ├── services/
+│   │   ├── import_service.py    # Parser Excel Upsert O(1) & sinkronisasi opname
+│   │   ├── kmeans_service.py    # Logika inti K-Means, Elbow, DBI, Silhouette, EOQ, ROP
+│   │   └── pdf_service.py       # Engine generator berkas cetak PDF via xhtml2pdf
+│   ├── static/
+│   │   ├── css/style.css        # Custom CSS styling modern antarmuka
+│   │   └── img/                 # Logo aset Apotek Signa Medika
+│   └── templates/               # Jinja2 Layout Templates per modul
+├── migrations/                  # Script versioning skema basis data Alembic
+├── tests/                       # Suite pengujian otomatis berbasis pytest
+│   ├── conftest.py              # Fixture session SQLite in-memory & auto-skip
+│   ├── test_auth.py             # Pengujian proteksi akses & sesi otentikasi
+│   ├── test_clustering.py       # Pengujian algoritma K-Means, DBI, & Silhouette
+│   ├── test_eoq.py              # Pengujian akurasi formula EOQ, ROP, & batas stok
+│   └── test_obat.py             # Pengujian CRUD obat & validasi berkas impor
+├── data-obat-contoh.xlsx        # File template resmi impor data obat
+├── seed.py                      # Script otomatisasi seeding database
+├── run.py                       # File entrypoint server aplikasi
+├── requirements.txt             # Daftar dependensi modul Python
+├── .env.example                 # Template variabel environment
+└── README.md                    # Dokumentasi lengkap proyek
+```
+
+---
+
+## 🧪 Pengujian Sistem
+
+Proyek ini telah dilengkapi dengan suite pengujian otomatis menyeluruh (**40 Test Cases**) menggunakan **pytest**:
 
 ```bash
 pytest
 ```
 
-`test_clustering.py` dan `test_eoq.py` membandingkan hasil perhitungan dengan nilai referensi dari data asli apotek, jadi keduanya butuh `data-riil.xlsx` di root proyek. Jika file itu tidak ada, kedua test tersebut otomatis dilewati (skipped) dan hanya `test_auth.py` serta `test_obat.py` yang berjalan.
+```text
+============================= test session starts =============================
+platform win32 -- Python 3.11.2, pytest-8.3.2, pluggy-1.6.0
+collected 40 items
 
-| File | Cakupan |
-|---|---|
-| `test_auth.py` | Login, logout, proteksi halaman |
-| `test_obat.py` | CRUD obat, validasi unggah file, unduh template |
-| `test_clustering.py` | K-Means K = 2 dan K = 3, pelabelan, distribusi cluster, DBI, Silhouette, Elbow |
-| `test_eoq.py` | Ketepatan EOQ, ROP, kebutuhan mingguan, dan frekuensi pesan terhadap nilai referensi |
+tests\test_auth.py ......                                                [ 15%]
+tests\test_clustering.py ...............                                 [ 52%]
+tests\test_eoq.py ..........                                             [ 77%]
+tests\test_obat.py .........                                             [100%]
+
+============================== 40 passed in 20.20s ==============================
+```
+
+### Matriks Pengujian Unit
+| Test Suite | Jumlah Kasus | Area yang Diuji |
+|---|:---:|---|
+| [`test_auth.py`](tests/test_auth.py) | **6 Tests** | Validasi form login, verifikasi hash password, penolakan kredensial invalid, pemblokiran rute terproteksi tanpa sesi, dan alur logout. |
+| [`test_obat.py`](tests/test_obat.py) | **9 Tests** | Alur CRUD data obat, proteksi 404 ID obat tidak ditemukan, validasi upload file tanpa berkas, penolakan ekstensi file ilegal, dan unduhan template. |
+| [`test_clustering.py`](tests/test_clustering.py) | **15 Tests** | Eksekusi K=2 dan K=3, integritas simpan database, validasi nama label moving, guard clause data minimum, sebaran cluster, akurasi DBI & Silhouette, serta monotonitas kurva inertia Elbow. |
+| [`test_eoq.py`](tests/test_eoq.py) | **10 Tests** | Kelengkapan data seluruh obat, validasi nilai positif, presisi kalkulasi EOQ, akurasi nilai ROP, pembulatan kebutuhan mingguan, batas minimum frekuensi pemesanan, dan penanganan biaya simpan nol. |
+
+---
+
+<div align="center">
+  <sub>Dikembangkan untuk Tugas Akhir · Sistem Informasi Apotek Signa Medika · 2026</sub>
+</div>
